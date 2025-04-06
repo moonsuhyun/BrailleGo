@@ -1,5 +1,5 @@
-#include "stdlib.h"
 #include "stdint.h"
+#include "stdlib.h"
 #include "HalTimer.h"
 
 void delay(uint32_t ms) {
