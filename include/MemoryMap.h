@@ -10,9 +10,9 @@
 // task 스택영역: 64MB
 #define TASK_STACK_START    0x00800000  // 각 task 당 1MB씩, 총 64개 task
 // 전역변수 영역: 1MB
-#define GLOBAL_ADDR_START   0x00480000
+#define GLOBAL_ADDR_START   0x04800000
 // dynamic alloc 영역: 55MB
-#define DALLOC_ADDR_START   0x00490000
+#define DALLOC_ADDR_START   0x04900000
 // 총 메모리: 128MB
 
 #define INST_MEM_SIZE       (USRSYS_STACK_START - INST_ADDR_START)
