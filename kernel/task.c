@@ -3,6 +3,7 @@
 
 #include "ARMv7AR.h"
 #include "task.h"
+#include "switch.h"
 
 static KernelTcb_t sTask_list[MAX_TASK_NUM];
 static uint32_t sAllocated_tcb_index;
@@ -11,8 +12,13 @@ static uint32_t sAllocated_tcb_index;
 static uint32_t sCurrent_tcb_index;
 static KernelTcb_t* Scheduler_round_robin_algorithm(void);
 
+KernelTcb_t* Current_tcb;
+KernelTcb_t* Next_tcb;
+
 void Kernel_task_init(void) {
     sAllocated_tcb_index = 0;
+    sCurrent_tcb_index = 0;
+
     for(uint32_t i = 0; i < MAX_TASK_NUM; i++) {
         sTask_list[i].stack_base = (uint8_t*)(TASK_STACK_START + i * USR_TASK_STACK_SIZE);
         sTask_list[i].sp = (uint32_t)sTask_list[i].stack_base + USR_TASK_STACK_SIZE - 4;
@@ -25,6 +31,12 @@ void Kernel_task_init(void) {
     }
 }
 
+// 스케쥴러 최초 동작 시 context 백업 안 함
+void Kernel_task_start(void) {
+    Next_tcb = &sTask_list[sCurrent_tcb_index];
+    Restore_context();
+}
+
 uint32_t Kernel_task_create(KernelTaskFunc_t startFunc) {
     KernelTcb_t* new_tcb = &sTask_list[sAllocated_tcb_index++];
     if(sAllocated_tcb_index > MAX_TASK_NUM) return NOT_ENOUGH_TASK_NUM;
@@ -33,6 +45,13 @@ uint32_t Kernel_task_create(KernelTaskFunc_t startFunc) {
     ctx->pc = (uint32_t)startFunc;
     
     return (sAllocated_tcb_index - 1);
+}
+
+void Kernel_task_scheduler(void) {
+    Current_tcb = &sTask_list[sCurrent_tcb_index];
+    Next_tcb = Scheduler_round_robin_algorithm();
+
+    Kernel_task_context_switching();
 }
 
 static KernelTcb_t* Scheduler_round_robin_algorithm(void) {
