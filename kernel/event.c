@@ -1,4 +1,5 @@
 #include "stdint.h"
+#include "stdbool.h"
 
 #include "stdio.h"
 #include "event.h"
@@ -17,10 +18,10 @@ void Kernel_event_flag_clear(KernelEventFlag_t event) {
     sEventFlag &= ~((uint32_t)event);
 }
 
-uint32_t Kernel_event_flag_check(KernelEventFlag_t event) {
+bool Kernel_event_flag_check(KernelEventFlag_t event) {
     if (sEventFlag & (uint32_t)event) {
         Kernel_event_flag_clear(event);
-        return 1;
+        return true;
     }
-    return 0;
+    return false;
 }

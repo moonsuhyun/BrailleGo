@@ -1,3 +1,5 @@
+#include "stdbool.h"
+
 #ifndef KERNEL_EVENT_H_
 #define KERNEL_EVENT_H_
 
@@ -11,6 +13,6 @@ typedef enum KernelEventFlag_t {
 void Kernel_event_flag_init(void);
 void Kernel_event_flag_set(KernelEventFlag_t event);
 void Kernel_event_flag_clear(KernelEventFlag_t event);
-uint32_t Kernel_event_flag_check(KernelEventFlag_t evnet);
+bool Kernel_event_flag_check(KernelEventFlag_t evnet);
 
 #endif // KERNEL_EVENT_H_
