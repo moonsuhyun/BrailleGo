@@ -24,5 +24,6 @@ void Kernel_task_init(void);
 void Kernel_task_start(void);
 uint32_t Kernel_task_create(KernelTaskFunc_t startFunc);
 void Kernel_task_scheduler(void);
+uint32_t Kernel_task_get_current_task_id(void);
 
 #endif // KERNEL_TASK_H_

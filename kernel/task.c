@@ -60,3 +60,7 @@ static KernelTcb_t* Scheduler_round_robin_algorithm(void) {
 
     return &sTask_list[sCurrent_tcb_index];
 }
+
+uint32_t Kernel_task_get_current_task_id(void) {
+    return sCurrent_tcb_index;
+}
