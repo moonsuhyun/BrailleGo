@@ -22,6 +22,7 @@
 #include "stm32f1xx_it.h"
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "task.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -55,9 +56,9 @@
 /* USER CODE END 0 */
 
 /* External variables --------------------------------------------------------*/
-
 /* USER CODE BEGIN EV */
-
+extern KernelTcb_t* Current_tcb;
+extern KernelTcb_t* Next_tcb;
 /* USER CODE END EV */
 
 /******************************************************************************/
@@ -166,15 +167,25 @@ void DebugMon_Handler(void)
 
 /**
   * @brief This function handles Pendable request for system service.
+  * PendSV Exception 발생 시 Context switching 수행
   */
-void PendSV_Handler(void)
+__attribute__((naked)) void PendSV_Handler(void)
 {
-  /* USER CODE BEGIN PendSV_IRQn 0 */
-
-  /* USER CODE END PendSV_IRQn 0 */
-  /* USER CODE BEGIN PendSV_IRQn 1 */
-
-  /* USER CODE END PendSV_IRQn 1 */
+	__asm volatile (
+	        // Save Context
+	        "MRS   r0, psp         \n"
+	        "STMDB r0!, {r4-r11}   \n"
+	        "LDR   r1, =Current_tcb\n"
+	        "LDR   r1, [r1]        \n"
+	        "STR   r0, [r1]        \n"
+	        // Restore Context
+	        "LDR   r1, =Next_tcb   \n"
+	        "LDR   r1, [r1]        \n"
+	        "LDR   r0, [r1]        \n"
+	        "LDMIA r0!, {r4-r11}   \n"
+	        "MSR   psp, r0         \n"
+	        "BX    lr              \n"
+	    );
 }
 
 /**

@@ -21,8 +21,8 @@
  */
 
 /* Includes */
+#include <devlib.h>
 #include <sys/stat.h>
-#include <stdlib.h>
 #include <errno.h>
 #include <stdio.h>
 #include <signal.h>
