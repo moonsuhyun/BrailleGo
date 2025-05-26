@@ -22,7 +22,7 @@
 #include "stm32f1xx_it.h"
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include "task.h"
+#include "switch.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -37,7 +37,7 @@
 
 /* Private macro -------------------------------------------------------------*/
 /* USER CODE BEGIN PM */
-
+#define TIMESLICE_SCHEDULING 0
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
@@ -56,9 +56,9 @@
 /* USER CODE END 0 */
 
 /* External variables --------------------------------------------------------*/
+extern UART_HandleTypeDef huart2;
 /* USER CODE BEGIN EV */
-extern KernelTcb_t* Current_tcb;
-extern KernelTcb_t* Next_tcb;
+
 /* USER CODE END EV */
 
 /******************************************************************************/
@@ -142,10 +142,48 @@ void UsageFault_Handler(void)
 /**
   * @brief This function handles System service call via SWI instruction.
   */
-void SVC_Handler(void)
+__attribute((naked)) void SVC_Handler(void)
 {
   /* USER CODE BEGIN SVCall_IRQn 0 */
+    asm volatile (
+        // 스택프레임 선택
+        "TST   lr, #4              \n"	// EXC_RETURN의 2번 비트로 PSP/MSP 선택
+        "ITE   eq                  \n"
+        "MRSEQ r0, msp             \n"
+        "MRSNE r0, psp             \n"
+        // SVC 번호 추출
+        "LDR   r1, [r0, #24]       \n"	// r1 <- stacked PC (SVC 이후 명령)
+        "SUBS  r1, #2              \n"	// r1 = SVC 명령 위치 (PC - 2)
+        "LDRB  r2, [r1]            \n"	// r2 = SVC #번호 (SVC 명령의 LSB)
+        // SVC 번호에 따른 분기
+        "CMP   r2, #0              \n"  // SVC#0 = 태스크 시작
+        "BEQ   svc_task_start 	   \n"
+    	"CMP   r2, #1			   \n"  // SVC#1 = 컨택스트 스위칭을 위해 PendSV 활성
+    	"BEQ   svc_trigger_pendsv  \n"
+//		"BEQ   Port_trigger_pendsv \n"
+        "BX    lr                  \n"	// (그 외 번호: 그냥 예외 복귀)
 
+		// 태스크 시작 컨텍스트 복구/Thread Mode PSP 전환
+    	"svc_task_start:           \n"
+		"LDR   r0, =Next_tcb       \n"
+		"LDR   r0, [r0]        	   \n"
+		"LDR   r0, [r0]            \n"  // r0 = Next_tcb->sp
+		"LDMIA r0!, {r4-r11}       \n"  // 태스크 스택 프레임 복구
+		"MSR   psp, r0             \n"  // PSP 복구
+		// Control 레지스터를 2(PSP사용, Privileged)로 변경
+		"MOVS  r0, #2              \n"
+		"MSR   control, r0         \n"
+		"ISB                       \n"  // Instruction Sync. Barrier
+		// EXC_RETURN 값으로 복귀(PSP활성, Thread Mode 복귀)
+		"MOV   lr, #0xFFFFFFFD     \n"
+		"BX    lr                  \n"
+		"svc_trigger_pendsv:        \n"
+		"LDR r0, =0xE000ED04\n"
+		"LDR r1, [r0]\n"
+		"ORR r1, r1, #0x10000000\n"
+		"STR r1, [r0]\n"
+		"BX    lr                  \n"
+    );
   /* USER CODE END SVCall_IRQn 0 */
   /* USER CODE BEGIN SVCall_IRQn 1 */
 
@@ -167,25 +205,29 @@ void DebugMon_Handler(void)
 
 /**
   * @brief This function handles Pendable request for system service.
-  * PendSV Exception 발생 시 Context switching 수행
   */
-__attribute__((naked)) void PendSV_Handler(void)
+void PendSV_Handler(void)
 {
-	__asm volatile (
-	        // Save Context
-	        "MRS   r0, psp         \n"
-	        "STMDB r0!, {r4-r11}   \n"
-	        "LDR   r1, =Current_tcb\n"
-	        "LDR   r1, [r1]        \n"
-	        "STR   r0, [r1]        \n"
-	        // Restore Context
-	        "LDR   r1, =Next_tcb   \n"
-	        "LDR   r1, [r1]        \n"
-	        "LDR   r0, [r1]        \n"
-	        "LDMIA r0!, {r4-r11}   \n"
-	        "MSR   psp, r0         \n"
-	        "BX    lr              \n"
-	    );
+  /* USER CODE BEGIN PendSV_IRQn 0 */
+	asm volatile (
+		// 현재 태스크 컨텍스트 백업
+		"MRS   r0, psp             \n"
+		"STMDB r0!, {r4-r11}       \n"  // 현재 태스크 스택 프레임 백업
+		"LDR   r1, =Current_tcb    \n"
+		"LDR   r1, [r1]            \n"  // r1 = Current_tcp->sp
+		"STR   r0, [r1]            \n"  // PSP 백업
+		// 다음 태스크 컨택스트 복원
+		"LDR   r1, =Next_tcb       \n"
+		"LDR   r1, [r1]            \n"
+		"LDR   r0, [r1]            \n"  // r0 = Next_tcb->sp
+		"LDMIA r0!, {r4-r11}       \n"  // 다음 태스크 스택 프레임 복구
+		"MSR   psp, r0             \n"  // PSP 복구
+		"BX    lr                  \n"
+	);
+  /* USER CODE END PendSV_IRQn 0 */
+  /* USER CODE BEGIN PendSV_IRQn 1 */
+
+  /* USER CODE END PendSV_IRQn 1 */
 }
 
 /**
@@ -198,7 +240,7 @@ void SysTick_Handler(void)
   /* USER CODE END SysTick_IRQn 0 */
   HAL_IncTick();
   /* USER CODE BEGIN SysTick_IRQn 1 */
-
+  if (TIMESLICE_SCHEDULING) Kernel_systick_callback();
   /* USER CODE END SysTick_IRQn 1 */
 }
 
@@ -208,6 +250,20 @@ void SysTick_Handler(void)
 /* For the available peripheral interrupt handler names,                      */
 /* please refer to the startup file (startup_stm32f1xx.s).                    */
 /******************************************************************************/
+
+/**
+  * @brief This function handles USART2 global interrupt.
+  */
+void USART2_IRQHandler(void)
+{
+  /* USER CODE BEGIN USART2_IRQn 0 */
+
+  /* USER CODE END USART2_IRQn 0 */
+  HAL_UART_IRQHandler(&huart2);
+  /* USER CODE BEGIN USART2_IRQn 1 */
+
+  /* USER CODE END USART2_IRQn 1 */
+}
 
 /**
   * @brief This function handles EXTI line[15:10] interrupts.

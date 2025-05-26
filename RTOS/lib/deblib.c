@@ -1,10 +1,9 @@
-#include <devlib.h>
-#include "stdint.h"
-#include "stm32f1xx_hal.h"
+#include "devlib.h"
 
+#include "BspSysTick.h"
 
 void delay(uint32_t ms) {
-	HAL_Delay(ms);
+	Bsp_delay(ms);
 }
 
 //void memclr(void* dist, uint32_t count) {

@@ -1,6 +1,3 @@
-#include <devlib.h>
-#include "stdint.h"
-
 #include "msg.h"
 
 KernelCirQ_t sMsgQ[KernelMsgQ_Num];

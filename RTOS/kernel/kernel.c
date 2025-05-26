@@ -1,9 +1,4 @@
-#include "stdint.h"
-#include "stdbool.h"
-
 #include "kernel.h"
-//#include "memio.h"
-#include "synch.h"
 
 void Kernel_start(void) {
     Kernel_task_start();

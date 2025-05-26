@@ -23,6 +23,7 @@
 /* USER CODE BEGIN Includes */
 #include "stdint.h"
 #include "kernel.h"
+#include "devio.h"
 
 #include "usertask.h"
 /* USER CODE END Includes */
@@ -93,6 +94,7 @@ int main(void)
   MX_GPIO_Init();
   MX_USART2_UART_Init();
   /* USER CODE BEGIN 2 */
+  debug_printf("Kernel init...\n");
   Kernel_init();
   /* USER CODE END 2 */
 

@@ -1,11 +1,12 @@
 .DS_Store
 
-/.settings
-/.cproject
-/.project
-/.mxproject
-/.metadata
-*.launch
+.settings/
+
+.cproject
+.project
+.mxproject
+.metadata
+.launch
 
 Debug/
 Release/

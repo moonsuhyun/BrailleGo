@@ -1,4 +1,7 @@
+#include "devlib.h"
+#include "stdint.h"
 #include "stdbool.h"
+#include "memory.h"
 
 #ifndef KERNEL_MSG_H_
 #define KERNEL_MSG_H_

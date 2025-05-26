@@ -8,7 +8,7 @@
 #ifndef INC_USERTASK_H_
 #define INC_USERTASK_H_
 
-void Task0(void);
-void Task1(void);
+__attribute ((used)) volatile void Task0(void);
+__attribute ((used)) volatile void Task1(void);
 
 #endif /* INC_USERTASK_H_ */

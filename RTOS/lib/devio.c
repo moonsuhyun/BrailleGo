@@ -1,6 +1,5 @@
 //#include "stdint.h"
 //#include "stdarg.h"
-#include "stm32f1xx_hal.h"
 
 #include "devio.h"
 
@@ -8,13 +7,11 @@
 
 static char printf_buf[PRINTF_BUF_LEN];
 
-extern UART_HandleTypeDef huart2;
-
 uint32_t putstr(const char* ch) {
     // putstr 구현
     uint32_t count = 0;
     while(*ch) {     // NULL을 만나기 전까지
-    	HAL_UART_Transmit(&huart2, (const uint8_t*)ch++, 1, HAL_MAX_DELAY);
+    	Bsp_uart_put_char(*(const uint8_t*)ch++);
         count++;
     }
     return count;

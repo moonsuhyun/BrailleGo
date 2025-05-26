@@ -4,6 +4,8 @@
 #include "stdarg.h"
 #include "stdint.h"
 
+#include "BspUart.h"
+
 typedef enum utoa_t {
     utoa_dec = 10,
     utoa_hex = 16

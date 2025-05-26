@@ -1,9 +1,15 @@
 #ifndef KERNEL_KERNEL_H_
 #define KERNEL_KERNEL_H_
 
+#include "stdint.h"
+#include "stdbool.h"
+#include "memory.h"
+
 #include "task.h"
 #include "event.h"
 #include "msg.h"
+#include "synch.h"
+
 
 void Kernel_start(void);
 void Kernel_yield(void);
