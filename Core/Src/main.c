@@ -94,7 +94,7 @@ int main(void)
   MX_GPIO_Init();
   MX_USART2_UART_Init();
   /* USER CODE BEGIN 2 */
-  debug_printf("Kernel init...\n");
+  printf("Kernel init...\r\n");
   Kernel_init();
   /* USER CODE END 2 */
 
@@ -225,6 +225,8 @@ static void MX_GPIO_Init(void)
 
 /* USER CODE BEGIN 4 */
 static void Kernel_init(void) {
+	HAL_NVIC_SetPriority(PendSV_IRQn, 0xF, 0);
+
 	uint32_t taskId;
 
 	Kernel_task_init();

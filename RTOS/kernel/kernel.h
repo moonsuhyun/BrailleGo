@@ -3,8 +3,8 @@
 
 #include "stdint.h"
 #include "stdbool.h"
-#include "memory.h"
 
+#include "devlib.h"
 #include "task.h"
 #include "event.h"
 #include "msg.h"

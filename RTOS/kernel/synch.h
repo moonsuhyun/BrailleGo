@@ -1,7 +1,7 @@
 #ifndef KERNEL_SYNCH_H_
 #define KERNEL_SYNCH_H_
 
-typedef struct KernelMutex_t {
+typedef struct KernelMutex {
     uint32_t owner;
     bool lock;
 } KernelMutex_t;

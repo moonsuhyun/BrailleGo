@@ -10,6 +10,6 @@
 
 #include "stdint.h"
 
-void Bsp_uart_put_char(const uint8_t ch);
+void Bsp_uart_transmit(uint8_t* data, uint32_t len);
 
 #endif /* BSP_BSPUART_H_ */

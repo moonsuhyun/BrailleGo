@@ -10,6 +10,10 @@
 
 extern UART_HandleTypeDef huart2;
 
-void Bsp_uart_put_char(const uint8_t ch) {
-	HAL_UART_Transmit(&huart2, &ch, 1, HAL_MAX_DELAY);
+void Bsp_uart_transmit(uint8_t* data, uint32_t len) {
+	HAL_UART_Transmit(&huart2, data, len, HAL_MAX_DELAY);
 }
+
+//void Bsp_uart_put_char(const uint8_t ch) {
+//	HAL_UART_Transmit(&huart2, &ch, 1, HAL_MAX_DELAY);
+//}

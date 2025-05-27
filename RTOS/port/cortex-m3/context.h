@@ -11,7 +11,7 @@
 #include "stdint.h"
 
 // Context switching시 stack에 백업할 레지스터의 구조
-typedef struct ExceptionStackFrame_t {
+typedef struct ExceptionStackFrame {
 	uint32_t r0_r3[4];
 	uint32_t r12;
 	uint32_t lr;
@@ -19,7 +19,7 @@ typedef struct ExceptionStackFrame_t {
 	uint32_t xpsr;
 } ExceptionStackFrame_t;
 
-typedef struct TaskStackFrame_t {
+typedef struct TaskStackFrame {
     uint32_t r4_r11[8];
     ExceptionStackFrame_t exc_frame;
 } TaskStackFrame_t;

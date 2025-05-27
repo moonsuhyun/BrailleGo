@@ -5,10 +5,11 @@
  *      Author: moon
  */
 
+#include "stm32f1xx.h"
+
 #include "handler.h"
 
-extern KernelTcb_t* Current_tcb;
-extern KernelTcb_t* Next_tcb;
+extern KernelTcb_t* gCurrent_tcb;
 
 __attribute ((naked)) void Port_svc_handler(void) {
     asm volatile (
@@ -30,9 +31,9 @@ __attribute ((naked)) void Port_svc_handler(void) {
 
 		// 태스크 시작 컨텍스트 복구/Thread Mode PSP 전환
     	"svc_task_start:           \n"
-		"LDR   r0, =Next_tcb       \n"
+		"LDR   r0, =gCurrent_tcb   \n"
 		"LDR   r0, [r0]        	   \n"
-		"LDR   r0, [r0]            \n"  // r0 = Next_tcb->sp
+		"LDR   r0, [r0]            \n"  // r0 = gCurrent_tcb->sp
 		"LDMIA r0!, {r4-r11}       \n"  // 태스크 스택 프레임 복구
 		"MSR   psp, r0             \n"  // PSP 복구
 		// Control 레지스터를 2(PSP사용, Privileged)로 변경
@@ -52,16 +53,20 @@ __attribute ((naked)) void Port_svc_handler(void) {
     );
 }
 
+
 __attribute ((naked)) void Port_pendsv_handler(void) {
 	asm volatile (
 		// 현재 태스크 컨텍스트 백업
 		"MRS   r0, psp             \n"
 		"STMDB r0!, {r4-r11}       \n"  // 현재 태스크 스택 프레임 백업
-		"LDR   r1, =Current_tcb    \n"
+		"LDR   r1, =gCurrent_tcb   \n"
 		"LDR   r1, [r1]            \n"  // r1 = Current_tcp->sp
 		"STR   r0, [r1]            \n"  // PSP 백업
+		"PUSH  {r7, lr}\n"
+		"BL   Kernel_task_scheduler\n"  // 스케쥴러 호출, gCurrent_tcb 변경
+		"POP   {r7, lr}\n"
 		// 다음 태스크 컨택스트 복원
-		"LDR   r1, =Next_tcb       \n"
+		"LDR   r1, =gCurrent_tcb   \n"
 		"LDR   r1, [r1]            \n"
 		"LDR   r0, [r1]            \n"  // r0 = Next_tcb->sp
 		"LDMIA r0!, {r4-r11}       \n"  // 다음 태스크 스택 프레임 복구
@@ -69,3 +74,21 @@ __attribute ((naked)) void Port_pendsv_handler(void) {
 		"BX    lr                  \n"
 	);
 }
+
+//__attribute ((naked)) void Port_pendsv_handler(void) {
+//	asm volatile (
+//		// 현재 태스크 컨텍스트 백업
+//		"MRS   r0, psp             \n"
+//		"STMDB r0!, {r4-r11}       \n"  // 현재 태스크 스택 프레임 백업
+//		"LDR   r1, =Current_tcb    \n"
+//		"LDR   r1, [r1]            \n"  // r1 = Current_tcp->sp
+//		"STR   r0, [r1]            \n"  // PSP 백업
+//		// 다음 태스크 컨택스트 복원
+//		"LDR   r1, =Next_tcb       \n"
+//		"LDR   r1, [r1]            \n"
+//		"LDR   r0, [r1]            \n"  // r0 = Next_tcb->sp
+//		"LDMIA r0!, {r4-r11}       \n"  // 다음 태스크 스택 프레임 복구
+//		"MSR   psp, r0             \n"  // PSP 복구
+//		"BX    lr                  \n"
+//	);
+//}

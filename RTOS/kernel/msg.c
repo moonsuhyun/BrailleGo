@@ -1,12 +1,12 @@
 #include "msg.h"
 
-KernelCirQ_t sMsgQ[KernelMsgQ_Num];
+KernelMsgCirQ_t sMsgQ[KernelMsgQ_Num];
 
 void Kernel_msgQ_init(void) {
     for (uint32_t i=0; i<KernelMsgQ_Num; i++) {
         sMsgQ[i].front = 0;
         sMsgQ[i].rear = 0;
-        memclr(sMsgQ[i].Queue, MSG_Q_SIZE_BYTE);
+        memset(sMsgQ[i].Queue, 0, MSG_Q_SIZE_BYTE * sizeof(uint8_t));
     }
 }
 

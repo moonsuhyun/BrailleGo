@@ -5,7 +5,8 @@ void Kernel_start(void) {
 }
 
 void Kernel_yield(void) {
-    Kernel_task_scheduler();
+//   Kernel_task_scheduler();
+	Kernel_task_yield(Kernel_task_get_current_task_id());
 }
 
 void Kernel_send_events(uint32_t event_list) {
