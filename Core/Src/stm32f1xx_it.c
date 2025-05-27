@@ -145,45 +145,7 @@ void UsageFault_Handler(void)
 __attribute((naked)) void SVC_Handler(void)
 {
   /* USER CODE BEGIN SVCall_IRQn 0 */
-    asm volatile (
-        // 스택프레임 선택
-        "TST   lr, #4              \n"	// EXC_RETURN의 2번 비트로 PSP/MSP 선택
-        "ITE   eq                  \n"
-        "MRSEQ r0, msp             \n"
-        "MRSNE r0, psp             \n"
-        // SVC 번호 추출
-        "LDR   r1, [r0, #24]       \n"	// r1 <- stacked PC (SVC 이후 명령)
-        "SUBS  r1, #2              \n"	// r1 = SVC 명령 위치 (PC - 2)
-        "LDRB  r2, [r1]            \n"	// r2 = SVC #번호 (SVC 명령의 LSB)
-        // SVC 번호에 따른 분기
-        "CMP   r2, #0              \n"  // SVC#0 = 태스크 시작
-        "BEQ   svc_task_start 	   \n"
-    	"CMP   r2, #1			   \n"  // SVC#1 = 컨택스트 스위칭을 위해 PendSV 활성
-    	"BEQ   svc_trigger_pendsv  \n"
-//		"BEQ   Port_trigger_pendsv \n"
-        "BX    lr                  \n"	// (그 외 번호: 그냥 예외 복귀)
-
-		// 태스크 시작 컨텍스트 복구/Thread Mode PSP 전환
-    	"svc_task_start:           \n"
-		"LDR   r0, =Next_tcb       \n"
-		"LDR   r0, [r0]        	   \n"
-		"LDR   r0, [r0]            \n"  // r0 = Next_tcb->sp
-		"LDMIA r0!, {r4-r11}       \n"  // 태스크 스택 프레임 복구
-		"MSR   psp, r0             \n"  // PSP 복구
-		// Control 레지스터를 2(PSP사용, Privileged)로 변경
-		"MOVS  r0, #2              \n"
-		"MSR   control, r0         \n"
-		"ISB                       \n"  // Instruction Sync. Barrier
-		// EXC_RETURN 값으로 복귀(PSP활성, Thread Mode 복귀)
-		"MOV   lr, #0xFFFFFFFD     \n"
-		"BX    lr                  \n"
-		"svc_trigger_pendsv:        \n"
-		"LDR r0, =0xE000ED04\n"
-		"LDR r1, [r0]\n"
-		"ORR r1, r1, #0x10000000\n"
-		"STR r1, [r0]\n"
-		"BX    lr                  \n"
-    );
+    asm volatile ("B Port_svc_handler");
   /* USER CODE END SVCall_IRQn 0 */
   /* USER CODE BEGIN SVCall_IRQn 1 */
 
@@ -209,21 +171,7 @@ void DebugMon_Handler(void)
 void PendSV_Handler(void)
 {
   /* USER CODE BEGIN PendSV_IRQn 0 */
-	asm volatile (
-		// 현재 태스크 컨텍스트 백업
-		"MRS   r0, psp             \n"
-		"STMDB r0!, {r4-r11}       \n"  // 현재 태스크 스택 프레임 백업
-		"LDR   r1, =Current_tcb    \n"
-		"LDR   r1, [r1]            \n"  // r1 = Current_tcp->sp
-		"STR   r0, [r1]            \n"  // PSP 백업
-		// 다음 태스크 컨택스트 복원
-		"LDR   r1, =Next_tcb       \n"
-		"LDR   r1, [r1]            \n"
-		"LDR   r0, [r1]            \n"  // r0 = Next_tcb->sp
-		"LDMIA r0!, {r4-r11}       \n"  // 다음 태스크 스택 프레임 복구
-		"MSR   psp, r0             \n"  // PSP 복구
-		"BX    lr                  \n"
-	);
+	asm volatile ("B Port_pendsv_handler");
   /* USER CODE END PendSV_IRQn 0 */
   /* USER CODE BEGIN PendSV_IRQn 1 */
 

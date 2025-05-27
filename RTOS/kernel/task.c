@@ -1,5 +1,6 @@
 
 #include "task.h"
+#include "cmsis_gcc.h"
 
 static KernelTcb_t sTask_list[MAX_TASK_NUM];
 static uint32_t sAllocated_tcb_index;
@@ -61,8 +62,10 @@ uint32_t Kernel_task_create(KernelTaskFunc_t startFunc) {
 }
 
 void Kernel_task_scheduler(void) {
+	__disable_irq();
     Current_tcb = &sTask_list[sCurrent_tcb_index];
     Next_tcb = Scheduler_round_robin_algorithm();
+    __enable_irq();
 
     Port_context_switch();
 }

@@ -10,7 +10,7 @@
 
 #include "task.h"
 
-__attribute ((naked)) void Port_svc0_handler(void); // Start first user task
-__attribute ((naked)) void Port_svc1_handler(void); // Context switching
+__attribute ((naked)) void Port_svc_handler(void);    // Start first user task
+__attribute ((naked)) void Port_pendcv_handler(void); // Context switching
 
 #endif /* PORT_HANDLER_H_ */
