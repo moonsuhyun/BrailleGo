@@ -7,7 +7,7 @@
 
 #include "switch.h"
 
-void Port_task_create(TaskStackFrame_t* task_frame, uint32_t pc) {
+void Port_Task_Create(TaskStackFrame_t* task_frame, uint32_t pc) {
     task_frame->exc_frame.xpsr = 0x01000000UL;
     task_frame->exc_frame.pc = pc;
     task_frame->exc_frame.lr = 0xFFFFFFFDUL; // EXC_RETURN for thread mode

@@ -9,6 +9,6 @@
 #define PORT_ARCH_H_
 
 
-void Port_interrupt_init(void);
+void Port_Interrupt_Init(void);
 
 #endif /* PORT_ARCH_H_ */

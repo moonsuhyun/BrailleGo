@@ -10,7 +10,7 @@
 
 extern UART_HandleTypeDef huart2;
 
-void Bsp_uart_transmit(uint8_t* data, uint32_t len) {
+void BSP_UART_Transmit(uint8_t* data, uint32_t len) {
 	HAL_UART_Transmit(&huart2, data, len, HAL_MAX_DELAY);
 }
 

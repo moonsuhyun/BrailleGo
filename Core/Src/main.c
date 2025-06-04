@@ -47,7 +47,7 @@
 UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
-
+volatile bool is_kernel_initialized = false;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -229,12 +229,14 @@ static void Kernel_init(void) {
 
 	uint32_t taskId;
 
-	Kernel_task_init();
+	Kernel_Task_Init();
 
-	taskId = Kernel_task_create(Task0);
-	taskId = Kernel_task_create(Task1);
+	taskId = Kernel_Task_Create(Task1);
+	taskId = Kernel_Task_Create(Task2);
+	taskId = Kernel_Task_Create(Task3);
 
-	Kernel_start();
+	is_kernel_initialized = true;
+	Kernel_Start();
 }
 
 /* USER CODE END 4 */

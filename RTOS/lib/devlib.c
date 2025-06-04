@@ -3,7 +3,7 @@
 #include "BspSysTick.h"
 
 void delay(uint32_t ms) {
-	Bsp_delay(ms);
+	BSP_Delay(ms);
 }
 
 

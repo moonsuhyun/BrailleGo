@@ -8,10 +8,15 @@
 #ifndef PORT_HANDLER_H_
 #define PORT_HANDLER_H_
 
-#include "task.h"
-#include "devio.h"
+#include "stdio.h"
 
-__attribute ((naked)) void Port_svc_handler(void);    // Start first user task
-__attribute ((naked)) void Port_pendsv_handler(void); // Context switching
+#include "task.h"
+#include "timer.h"
+#include "devio.h"
+#include "switch.h"
+
+__attribute ((naked)) void Port_SVC_Handler(void);    // Start first user task
+__attribute ((naked)) void Port_PendSV_Handler(void); // Context switching
+void Port_SysTick_Handler(void);
 
 #endif /* PORT_HANDLER_H_ */

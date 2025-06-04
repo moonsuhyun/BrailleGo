@@ -12,10 +12,17 @@
 #include "task.h"
 
 
-void Kernel_taskq_init(void);
-bool Kernel_taskq_is_empty(KernelTaskState_t q_name);
-bool Kernel_taskq_is_full(KernelTaskState_t q_name);
-bool Kernel_taskq_enqueue(KernelTaskState_t q_name, uint32_t task_id);
-bool Kernel_taskq_dequeue(KernelTaskState_t q_name, uint32_t* task_id);
+
+void Kernel_TaskQ_Init(void);
+bool Kernel_TaskQ_Is_Empty(KernelTaskState_t q_name);
+bool Kernel_TaskQ_Is_Full(KernelTaskState_t q_name);
+bool Kernel_TaskQ_Enqueue(KernelTaskState_t q_name, uint32_t task_id);
+bool Kernel_TaskQ_Dequeue(KernelTaskState_t q_name, uint32_t* task_id);
+bool Kernel_TaskQ_Get_Front(KernelTaskState_t q_name, uint32_t* task_id);
+bool Kernel_TaskQ_Remove(KernelTaskState_t q_name, uint32_t task_id);
+
+bool Kernel_TaskQ_Iterator_Init(TaskQIterator_t* iter, KernelTaskState_t q_name, uint32_t* task_id);
+bool Kernel_TaskQ_Iterator_Get(TaskQIterator_t* iter);
+bool Kernel_TaskQ_Snapshot(KernelTaskState_t q_name, uint32_t snapshot[]);
 
 #endif /* KERNEL_TASKQ_H_ */

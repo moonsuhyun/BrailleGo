@@ -10,6 +10,7 @@
 
 #include "stdint.h"
 
-void Bsp_delay(uint32_t ms);
+void BSP_Delay(uint32_t ms);
+uint32_t BSP_Get_Tick(void);
 
 #endif /* BSP_BSPSYSTICK_H_ */

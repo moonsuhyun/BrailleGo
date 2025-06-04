@@ -1,12 +1,19 @@
 #include "kernel.h"
 
-void Kernel_start(void) {
-    Kernel_task_start();
+void Kernel_Start(void) {
+    Kernel_Task_Start();
 }
 
-void Kernel_yield(void) {
-//   Kernel_task_scheduler();
-	Kernel_task_yield(Kernel_task_get_current_task_id());
+void Kernel_Yield(void) {
+	Kernel_Task_Yield(Kernel_Task_Get_Current_Task_Id());
+}
+
+void Kernel_Delay(uint32_t ms) {
+	Kernel_Task_Delay(Kernel_Task_Get_Current_Task_Id(), ms);
+}
+
+uint32_t Kernel_Get_SysTick(void) {
+	return BSP_Get_Tick();
 }
 
 void Kernel_send_events(uint32_t event_list) {
@@ -53,7 +60,7 @@ uint32_t Kernel_recv_msg(KernelMsgQ_t Qname, void* outdata, uint32_t count) {
 }
 
 void Kernel_lock_sem(void) {
-    while (!Kernel_sem_test()) Kernel_yield();
+    while (!Kernel_sem_test()) Kernel_Yield();
 }
 
 void Kernel_unlock_sem(void) {
@@ -62,12 +69,12 @@ void Kernel_unlock_sem(void) {
 
 void Kernel_lock_mutex(void) {
     while (1) {
-        uint32_t taskId = Kernel_task_get_current_task_id();
-        if (!Kernel_mutex_lock(taskId)) Kernel_yield();
+        uint32_t taskId = Kernel_Task_Get_Current_Task_Id();
+        if (!Kernel_mutex_lock(taskId)) Kernel_Yield();
         else break;
     }
 }
 void Kernel_unlock_mutex(void) {
-    uint32_t taskId = Kernel_task_get_current_task_id();
-    if (!Kernel_mutex_unlock(taskId)) Kernel_yield();
+    uint32_t taskId = Kernel_Task_Get_Current_Task_Id();
+    if (!Kernel_mutex_unlock(taskId)) Kernel_Yield();
 }

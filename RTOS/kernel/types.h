@@ -21,7 +21,7 @@ typedef enum KernelTaskState {
 	TASK_READY,
 	TASK_RUNNING,
 	TASK_BLOCKED,
-	TASK_TERMINATED,
+	TASK_SUSPENDED,
 	TASK_STATE_NUM
 } KernelTaskState_t;
 
@@ -29,7 +29,7 @@ typedef enum KernelTaskState {
 typedef struct KernelTcb {
     uint32_t* sp;
     uint8_t* stack_base;
-//  uint8_t priority;
+    uint32_t delay_until_time;
     KernelTaskState_t state;
 } KernelTcb_t;
 
@@ -37,12 +37,16 @@ typedef enum KernelTaskEvent {
 	EVENT_YIELD,
 	EVENT_BLOCK,
 	EVENT_UNBLOCK,
+	EVENT_SCHEDULE,
+	EVENT_SUSPEND,
 	EVENT_RESUME,
+	EVENT_NUM
 } KernelTaskEvent_t;
 
 typedef struct KernelTaskCirQ {
     uint32_t front;
     uint32_t rear;
+    uint32_t size;
     uint32_t Queue[MAX_TASK_NUM];
 } KernelTaskCirQ_t;
 
@@ -52,5 +56,13 @@ typedef struct KernelEventActionTable {
 	void (*action)(uint32_t task_id);
 	KernelTaskState_t next_state;
 } KernelEventActionTable_t;
+
+typedef struct TaskQIterator {
+	uint32_t index;
+	uint32_t size;
+	uint32_t* return_value;
+	bool is_initialized;
+	uint32_t snapshot[MAX_TASK_NUM];
+} TaskQIterator_t;
 
 #endif /* KERNEL_TYPES_H_ */

@@ -10,9 +10,15 @@
 #include "msg.h"
 #include "synch.h"
 
+#include "BspSysTick.h"
 
-void Kernel_start(void);
-void Kernel_yield(void);
+// user task에서 접근 가능한 kernel service 정의
+
+void Kernel_Start(void);
+void Kernel_Yield(void);
+void Kernel_Delay(uint32_t ms);
+
+uint32_t Kernel_Get_SysTick(void);
 
 void Kernel_send_events(uint32_t event_list);
 KernelEventFlag_t Kernel_wait_events(uint32_t waiting_list);

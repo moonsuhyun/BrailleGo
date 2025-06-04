@@ -5,51 +5,42 @@
 static KernelTcb_t sTask_list[MAX_TASK_NUM];
 static uint32_t sAllocated_tcb_count;
 
-// round robin scheduler
 static uint32_t sCurrent_task_id;
-static void Scheduler_round_robin_algorithm(void);
+static uint32_t sScheduler_round_robin_algorithm(void);
+static void sEvent_Yield(uint32_t task_id);
+static void sEvent_Schedule(uint32_t task_id);
+static void sEvent_Delay(uint32_t task_id);
+static void sEvent_Unblock(uint32_t task_id);
+static void sIdle_Task(void);
 
-KernelTcb_t* gCurrent_tcb;
-//KernelTcb_t* Next_tcb;
+//KernelTcb_t* gCurrent_tcb; Global 변수 사용 최소화
 
-void Kernel_task_init(void) {
-    sAllocated_tcb_count = 1;
-    sCurrent_task_id = 1;
+// 태스크 생성, 관리 등
 
-    Kernel_taskq_init();
+void Kernel_Task_Init(void) {
+    sAllocated_tcb_count = 0;
+    sCurrent_task_id = 0;
+
+    Kernel_TaskQ_Init();
 
     for(uint32_t i = 0; i < MAX_TASK_NUM; i++) {
     	sTask_list[i].sp = (uint32_t*)(TASK_STACK_TOP - i * TASK_STACK_SIZE);
         sTask_list[i].stack_base = (uint8_t*)(TASK_STACK_TOP - (i + 1) * TASK_STACK_SIZE);
         sTask_list[i].sp -= sizeof(TaskStackFrame_t) / 4;
         memset(sTask_list[i].stack_base, 0, TASK_STACK_SIZE);
-        sTask_list[i].state = TASK_TERMINATED;
+        sTask_list[i].delay_until_time = 0;
+        sTask_list[i].state = TASK_SUSPENDED;
     }
+
+    Kernel_Task_Create(sIdle_Task);
 }
 
-// 스케쥴러 최초 동작 시 context 백업 안 함
-//void Kernel_task_start(void) {
-//    Next_tcb = &sTask_list[sCurrent_tcb_index];
-//    __set_CONTROL(__get_CONTROL() | 0x2); // use PSP
-//        asm volatile (
-//			"LDR   r1, =Next_tcb   \n"
-//			"LDR   r1, [r1]        \n"
-//			"LDR   r0, [r1]        \n"
-//			"LDMIA r0!, {r4-r11}   \n"
-//			"MSR   psp, r0         \n"
-//            "MOV   lr, #0xFFFFFFFD \n" // EXC_RETURN for thread mode
-//            "BX    lr              \n"
-//        );
-//    // Restore_context();
-//}
-void Kernel_task_start(void) {
-	uint32_t task_id;
-    Kernel_taskq_dequeue(TASK_READY, &task_id);
-    Kernel_statem_transaction(task_id, EVENT_RESUME);
+void Kernel_Task_Start(void) {
+	Kernel_StateM_Transaction(IDLE_TASK_ID, EVENT_SCHEDULE);
     Port_task_start();
 }
 
-uint32_t Kernel_task_create(KernelTaskFunc_t startFunc) {
+uint32_t Kernel_Task_Create(KernelTaskFunc_t start_func) {
 	uint32_t task_id = sAllocated_tcb_count++;
 
     if(sAllocated_tcb_count > MAX_TASK_NUM) return NOT_ENOUGH_TASK_NUM;
@@ -57,60 +48,108 @@ uint32_t Kernel_task_create(KernelTaskFunc_t startFunc) {
     KernelTcb_t* new_tcb = &sTask_list[task_id];
 
     TaskStackFrame_t* task_frame = (TaskStackFrame_t*) new_tcb->sp;
-    uint32_t pc = (uint32_t)startFunc;
-    Port_task_create(task_frame, pc);
+    uint32_t pc = (uint32_t)start_func;
+    Port_Task_Create(task_frame, pc);
 
     new_tcb->state = TASK_READY;
-    Kernel_taskq_enqueue(TASK_READY, task_id);
+    if (task_id != IDLE_TASK_ID) {
+    	Kernel_TaskQ_Enqueue(TASK_READY, task_id);
+    }
 
     return task_id;
 }
 
+void Kernel_Task_Yield(uint32_t task_id) {
+	sEvent_Yield(task_id);
+}
+
+void Kernel_Task_Delay(uint32_t task_id, uint32_t ms) {
+	uint32_t start_tick = BSP_Get_Tick();
+	sTask_list[task_id].delay_until_time = start_tick + ms;
+	sEvent_Delay(task_id);
+}
+
 // Context switching 시 PendSV에서 호출
-void Kernel_task_scheduler(void) {
-    Scheduler_round_robin_algorithm();
-}
-
-void Scheduler_round_robin_algorithm(void) {
+void Kernel_Task_Scheduler(void) {
 	uint32_t task_id;
-	Kernel_taskq_dequeue(TASK_READY, &task_id);
-	Kernel_task_resume(task_id);
+	if (Kernel_TaskQ_Is_Empty(TASK_READY)) {
+		task_id = IDLE_TASK_ID;
+	} else {
+		task_id = sScheduler_round_robin_algorithm();
+	}
+    sEvent_Schedule(task_id);
 }
 
-uint32_t Kernel_task_get_current_task_id(void) {
+// getter, setter
+
+uint32_t Kernel_Task_Get_Current_Task_Id(void) {
     return sCurrent_task_id;
 }
 
-void Kernel_task_set_current_task_id(uint32_t task_id) {
+void Kernel_Task_Set_Current_Task_Id(uint32_t task_id) {
 	sCurrent_task_id = task_id;
-	gCurrent_tcb = &sTask_list[sCurrent_task_id];
 }
 
-uint32_t Kernel_task_get_state(uint32_t task_id) {
+uint32_t Kernel_Task_Get_State(uint32_t task_id) {
 	return sTask_list[task_id].state;
 }
 
-void Kernel_task_set_state(uint32_t task_id, KernelTaskState_t state) {
+void Kernel_Task_Set_State(uint32_t task_id, KernelTaskState_t state) {
 	sTask_list[task_id].state = state;
 }
 
-void Kernel_task_yield(uint32_t task_id) {
-	Kernel_statem_transaction(task_id, EVENT_YIELD);
+KernelTcb_t* Kernel_Task_Get_Current_Tcb(void) {
+	return &sTask_list[sCurrent_task_id];
 }
 
-void Kernel_task_resume(uint32_t task_id) {
-	Kernel_statem_transaction(task_id, EVENT_RESUME);
+void Kernel_Task_SysTick_Callback(void) {
+	if (!Kernel_TaskQ_Is_Empty(TASK_BLOCKED)) {
+		TaskQIterator_t iter;
+		uint32_t task_id;
+		if (Kernel_TaskQ_Iterator_Init(&iter, TASK_BLOCKED, &task_id)){
+			while (Kernel_TaskQ_Iterator_Get(&iter)) {
+				if (sTask_list[task_id].delay_until_time <= BSP_Get_Tick()) {
+					Kernel_TaskQ_Remove(TASK_BLOCKED, task_id);
+					sEvent_Unblock(task_id);
+				}
+			}
+		}
+	}
 }
 
 
-void Kernel_systick_callback(void) {
-//	static int tick = 0;
-//	tick++;
-//	if (tick > TIMESLICE_CNT) {
-//		Kernel_task_scheduler();
-//	}
+// static functions
+
+uint32_t sScheduler_round_robin_algorithm(void) {
+	uint32_t task_id;
+	Kernel_TaskQ_Dequeue(TASK_READY, &task_id);
+	return task_id;
 }
 
-void action(void) {
+// task event 관련
 
+void sEvent_Yield(uint32_t task_id) {
+	Kernel_StateM_Transaction(task_id, EVENT_YIELD);
 }
+
+void sEvent_Schedule(uint32_t task_id) {
+	Kernel_StateM_Transaction(task_id, EVENT_SCHEDULE);
+}
+
+void sEvent_Delay(uint32_t task_id) {
+	Kernel_StateM_Transaction(task_id, EVENT_BLOCK);
+}
+
+void sEvent_Unblock(uint32_t task_id) {
+	Kernel_StateM_Transaction(task_id, EVENT_UNBLOCK);
+}
+
+void sIdle_Task(void) {
+	while (1) {
+//		printf("Idle Task\r\n");
+		Kernel_Task_Yield(IDLE_TASK_ID);
+		__enable_irq();
+		__WFI();
+	}
+}
+

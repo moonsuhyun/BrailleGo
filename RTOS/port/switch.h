@@ -19,7 +19,7 @@
 #define ENTER_SWITCH_CRITICAL   __set_BASEPRI(0x10)
 #define EXIT_SWITCH_CRITICAL 	__set_BASEPRI(0x0)
 
-void Port_task_create(TaskStackFrame_t* task_frame, uint32_t pc);
+void Port_Task_Create(TaskStackFrame_t* task_frame, uint32_t pc);
 void Port_task_start(void);
 void Port_trigger_pendsv(void);
 

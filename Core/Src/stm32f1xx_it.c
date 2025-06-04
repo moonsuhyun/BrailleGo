@@ -82,7 +82,7 @@ void NMI_Handler(void)
 /**
   * @brief This function handles Hard fault interrupt.
   */
-__attribute__((naked)) void HardFault_Handler(void)
+__attribute((naked)) void HardFault_Handler(void)
 {
   /* USER CODE BEGIN HardFault_IRQn 0 */
     __asm volatile (
@@ -90,7 +90,7 @@ __attribute__((naked)) void HardFault_Handler(void)
             "ite   eq            \n"
             "mrseq r0, msp       \n"
             "mrsne r0, psp       \n"
-            "ldr   r1, [r0, #24] \n"
+            "b     Port_HardFault_Handler\n"
     );
   /* USER CODE END HardFault_IRQn 0 */
   while (1)
@@ -151,7 +151,7 @@ void UsageFault_Handler(void)
 __attribute((naked)) void SVC_Handler(void)
 {
   /* USER CODE BEGIN SVCall_IRQn 0 */
-    asm volatile ("B Port_svc_handler");
+    asm volatile ("B Port_SVC_Handler");
   /* USER CODE END SVCall_IRQn 0 */
   /* USER CODE BEGIN SVCall_IRQn 1 */
 
@@ -174,10 +174,10 @@ void DebugMon_Handler(void)
 /**
   * @brief This function handles Pendable request for system service.
   */
-void PendSV_Handler(void)
+__attribute((naked)) void PendSV_Handler(void)
 {
   /* USER CODE BEGIN PendSV_IRQn 0 */
-	asm volatile ("B Port_pendsv_handler");
+	asm volatile ("B Port_PendSV_Handler");
   /* USER CODE END PendSV_IRQn 0 */
   /* USER CODE BEGIN PendSV_IRQn 1 */
 
@@ -194,7 +194,7 @@ void SysTick_Handler(void)
   /* USER CODE END SysTick_IRQn 0 */
   HAL_IncTick();
   /* USER CODE BEGIN SysTick_IRQn 1 */
-  if (TIMESLICE_SCHEDULING) Kernel_systick_callback();
+  Port_SysTick_Handler();
   /* USER CODE END SysTick_IRQn 1 */
 }
 
