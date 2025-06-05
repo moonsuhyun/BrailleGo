@@ -1,5 +1,12 @@
 #include "kernel.h"
 
+#include "devlib.h"
+#include "task.h"
+#include "event.h"
+#include "msg.h"
+#include "synch.h"
+#include "BspSysTick.h"
+
 void Kernel_Start(void) {
     Kernel_Task_Start();
 }

@@ -8,19 +8,20 @@
 #ifndef KERNEL_TYPES_H_
 #define KERNEL_TYPES_H_
 
+#include <stdint.h>
+#include <stdbool.h>
+
 #include "BspMemoryMap.h"
 
+#define NULL (void*)0
 #define NOT_ENOUGH_TASK_NUM 0xFFFFFFFF
 #define MAX_TASK_NUM (TASK_STACK_AREA_SIZE / TASK_STACK_SIZE)
 #define TIME_SLICE_CNT 10
 
-#include "stdint.h"
-#include "stdbool.h"
-
 typedef enum KernelTaskState {
 	TASK_READY,
 	TASK_RUNNING,
-	TASK_BLOCKED,
+	TASK_BLOCKED_DELAY,
 	TASK_SUSPENDED,
 	TASK_STATE_NUM
 } KernelTaskState_t;
@@ -35,7 +36,7 @@ typedef struct KernelTcb {
 
 typedef enum KernelTaskEvent {
 	EVENT_YIELD,
-	EVENT_BLOCK,
+	EVENT_DELAY,
 	EVENT_UNBLOCK,
 	EVENT_SCHEDULE,
 	EVENT_SUSPEND,

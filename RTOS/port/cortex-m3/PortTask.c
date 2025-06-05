@@ -1,11 +1,11 @@
 /*
- * switch.c
+ * PortTask.c
  *
  *  Created on: May 26, 2025
  *      Author: moon
  */
 
-#include "switch.h"
+#include "PortTask.h"
 
 void Port_Task_Create(TaskStackFrame_t* task_frame, uint32_t pc) {
     task_frame->exc_frame.xpsr = 0x01000000UL;
@@ -13,16 +13,12 @@ void Port_Task_Create(TaskStackFrame_t* task_frame, uint32_t pc) {
     task_frame->exc_frame.lr = 0xFFFFFFFDUL; // EXC_RETURN for thread mode
 }
 
-void Port_task_start(void) {
+void Port_Task_Start(void) {
 	asm volatile ("SVC 0");
 }
 
-void Port_trigger_pendsv(void) {
-	asm volatile ("SVC 1");
-}
 
-
-//__attribute ((naked)) void Port_trigger_pendsv(void) {
+//__attribute ((naked)) void Port_Core_Trigger_PendSV(void) {
 //    SCB->ICSR |= SCB_ICSR_PENDSVSET_Msk;
 //    __asm volatile ("BX lr");
 //}

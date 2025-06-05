@@ -9,8 +9,6 @@
 #define KERNEL_STATEM_H_
 
 #include "types.h"
-#include "task.h"
-#include "taskq.h"
 
 #define NUM_TRANSACTIONS 6
 

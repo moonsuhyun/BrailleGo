@@ -18,11 +18,11 @@
 /* USER CODE END Header */
 
 /* Includes ------------------------------------------------------------------*/
+#include "PortHandler.h"
 #include "main.h"
 #include "stm32f1xx_it.h"
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include "switch.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -90,7 +90,7 @@ __attribute((naked)) void HardFault_Handler(void)
             "ite   eq            \n"
             "mrseq r0, msp       \n"
             "mrsne r0, psp       \n"
-            "b     Port_HardFault_Handler\n"
+            "b     Port_Handler_HardFault\n"
     );
   /* USER CODE END HardFault_IRQn 0 */
   while (1)
@@ -151,7 +151,7 @@ void UsageFault_Handler(void)
 __attribute((naked)) void SVC_Handler(void)
 {
   /* USER CODE BEGIN SVCall_IRQn 0 */
-    asm volatile ("B Port_SVC_Handler");
+    asm volatile ("B Port_Handler_SVC");
   /* USER CODE END SVCall_IRQn 0 */
   /* USER CODE BEGIN SVCall_IRQn 1 */
 
@@ -177,7 +177,7 @@ void DebugMon_Handler(void)
 __attribute((naked)) void PendSV_Handler(void)
 {
   /* USER CODE BEGIN PendSV_IRQn 0 */
-	asm volatile ("B Port_PendSV_Handler");
+	asm volatile ("B Port_Handler_PendSV");
   /* USER CODE END PendSV_IRQn 0 */
   /* USER CODE BEGIN PendSV_IRQn 1 */
 
@@ -194,7 +194,7 @@ void SysTick_Handler(void)
   /* USER CODE END SysTick_IRQn 0 */
   HAL_IncTick();
   /* USER CODE BEGIN SysTick_IRQn 1 */
-  Port_SysTick_Handler();
+  Port_Handler_SysTick();
   /* USER CODE END SysTick_IRQn 1 */
 }
 

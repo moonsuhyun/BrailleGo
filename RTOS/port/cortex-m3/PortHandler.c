@@ -1,19 +1,27 @@
 /*
- * handler.c
+ * PortHandler.c
  *
  *  Created on: May 26, 2025
  *      Author: moon
  */
 
+
+#include "PortHandler.h"
+
+#include <stdbool.h>
+
+#include "task.h"
+#include "types.h"
+#include "devio.h"
 #include "stm32f1xx.h"
 #include "main.h"
-#include "handler.h"
 
 extern UART_HandleTypeDef huart2;
 extern bool is_kernel_initialized;
 static KernelTcb_t* current_tcb;
 
-void Port_HardFault_Handler(uint32_t* sp) {
+
+void Port_Handler_HardFault(uint32_t* sp) {
 	uint32_t pc = sp[6];
 	printf("pc=%x", pc);
 	while (1) {
@@ -21,7 +29,7 @@ void Port_HardFault_Handler(uint32_t* sp) {
 	}
 }
 
-__attribute ((naked)) void Port_SVC_Handler(void) {
+__attribute ((naked)) void Port_Handler_SVC(void) {
 	asm volatile ("PUSH  {r7, lr}\n");
 	current_tcb = Kernel_Task_Get_Current_Tcb();
 	asm volatile ("POP   {r7, lr}\n");
@@ -66,7 +74,7 @@ __attribute ((naked)) void Port_SVC_Handler(void) {
     );
 }
 
-__attribute ((naked)) void Port_PendSV_Handler(void) {
+__attribute ((naked)) void Port_Handler_PendSV(void) {
 	asm volatile ("PUSH  {r7, lr}\n");
 	current_tcb = Kernel_Task_Get_Current_Tcb();
 	asm volatile ("POP   {r7, lr}\n");
@@ -93,7 +101,7 @@ __attribute ((naked)) void Port_PendSV_Handler(void) {
 	);
 }
 
-void Port_SysTick_Handler(void) {
+void Port_Handler_SysTick(void) {
 	if (is_kernel_initialized) {
 		Kernel_Task_SysTick_Callback();
 	}

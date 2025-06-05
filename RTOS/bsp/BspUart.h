@@ -8,7 +8,7 @@
 #ifndef BSP_BSPUART_H_
 #define BSP_BSPUART_H_
 
-#include "stdint.h"
+#include <stdint.h>
 
 void BSP_UART_Transmit(uint8_t* data, uint32_t len);
 

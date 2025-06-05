@@ -1,6 +1,14 @@
 
 #include "task.h"
-#include "cmsis_gcc.h"
+
+#include "PortTask.h"
+#include "stdio.h"
+#include "devio.h"
+#include "memory.h"
+#include "BspMemoryMap.h"
+#include "taskq.h"
+#include "statem.h"
+#include "BspSysTick.h"
 
 static KernelTcb_t sTask_list[MAX_TASK_NUM];
 static uint32_t sAllocated_tcb_count;
@@ -37,7 +45,7 @@ void Kernel_Task_Init(void) {
 
 void Kernel_Task_Start(void) {
 	Kernel_StateM_Transaction(IDLE_TASK_ID, EVENT_SCHEDULE);
-    Port_task_start();
+    Port_Task_Start();
 }
 
 uint32_t Kernel_Task_Create(KernelTaskFunc_t start_func) {
@@ -103,13 +111,13 @@ KernelTcb_t* Kernel_Task_Get_Current_Tcb(void) {
 }
 
 void Kernel_Task_SysTick_Callback(void) {
-	if (!Kernel_TaskQ_Is_Empty(TASK_BLOCKED)) {
+	if (!Kernel_TaskQ_Is_Empty(TASK_BLOCKED_DELAY)) {
 		TaskQIterator_t iter;
 		uint32_t task_id;
-		if (Kernel_TaskQ_Iterator_Init(&iter, TASK_BLOCKED, &task_id)){
+		if (Kernel_TaskQ_Iterator_Init(&iter, TASK_BLOCKED_DELAY, &task_id)){
 			while (Kernel_TaskQ_Iterator_Get(&iter)) {
 				if (sTask_list[task_id].delay_until_time <= BSP_Get_Tick()) {
-					Kernel_TaskQ_Remove(TASK_BLOCKED, task_id);
+					Kernel_TaskQ_Remove(TASK_BLOCKED_DELAY, task_id);
 					sEvent_Unblock(task_id);
 				}
 			}
@@ -137,7 +145,7 @@ void sEvent_Schedule(uint32_t task_id) {
 }
 
 void sEvent_Delay(uint32_t task_id) {
-	Kernel_StateM_Transaction(task_id, EVENT_BLOCK);
+	Kernel_StateM_Transaction(task_id, EVENT_DELAY);
 }
 
 void sEvent_Unblock(uint32_t task_id) {
@@ -148,8 +156,8 @@ void sIdle_Task(void) {
 	while (1) {
 //		printf("Idle Task\r\n");
 		Kernel_Task_Yield(IDLE_TASK_ID);
-		__enable_irq();
-		__WFI();
+		Port_Core_Enable_IRQ();
+		Port_Core_Wait_For_Interrupt();
 	}
 }
 

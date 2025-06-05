@@ -7,6 +7,8 @@
 
 #include "taskq.h"
 
+#include "task.h"
+
 static KernelTaskCirQ_t sTaskQ[TASK_STATE_NUM];
 
 void Kernel_TaskQ_Init(void) {

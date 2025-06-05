@@ -9,9 +9,6 @@
 #define KERNEL_TASKQ_H_
 
 #include "types.h"
-#include "task.h"
-
-
 
 void Kernel_TaskQ_Init(void);
 bool Kernel_TaskQ_Is_Empty(KernelTaskState_t q_name);
