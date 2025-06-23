@@ -43,6 +43,7 @@ typedef enum KernelTaskEvent {
 	EVENT_SUSPEND,
 	EVENT_RESUME,
 	EVENT_TERMINATE,
+	EVENT_CREATE,
 	EVENT_NUM
 } KernelTaskEvent_t;
 

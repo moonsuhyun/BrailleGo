@@ -21,4 +21,7 @@ void TaskE(void);
 
 void TaskF(void);
 
+void TaskG(void);
+void TaskH(void);
+
 #endif /* INC_USERTASK_H_ */

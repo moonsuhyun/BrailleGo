@@ -35,7 +35,7 @@ void Kernel_Delay(uint32_t ms) {
 }
 
 void Kernel_Terminate() {
-	Kernel_Task_Terminate(Kernel_Tesk_Get_Current_Task_Id());
+	Kernel_Task_Terminate(Kernel_Task_Get_Current_Task_Id());
 }
 
 uint32_t Kernel_Get_SysTick(void) {

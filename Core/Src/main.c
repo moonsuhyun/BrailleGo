@@ -237,12 +237,14 @@ static void sKernel_Init(void) {
 }
 
 static void sInit_Task(void) {
-	Kernel_Create(TaskA);
-	Kernel_Create(TaskB);
+//	Kernel_Create(TaskA);
+//	Kernel_Create(TaskB);
 //	Kernel_Create(TaskC);
 //	Kernel_Create(TaskD);
 //	Kernel_Create(TaskE);
 //	Kernel_Create(TaskF);
+	Kernel_Create(TaskG);
+	Kernel_Create(TaskH);
 
 }
 /* USER CODE END 4 */

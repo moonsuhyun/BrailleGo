@@ -76,5 +76,19 @@ void TaskF(void) {
 		printf("[Tick %u] TaskF UNBLOCK\r\n", Kernel_Get_SysTick());
 	}
 }
+void TaskG(void) {
+	for (uint32_t i=0; i<3; i++) {
+		printf("[Tick %u] TaskG RUN i=%u\r\n", Kernel_Get_SysTick(), i);
+		Kernel_Delay(1000);
+	}
+	printf("[Tick %u] TaskG TERMINATE\r\n", Kernel_Get_SysTick());
+	Kernel_Terminate();
+}
+void TaskH(void) {
+	while (1) {
+		printf("[Tick %u] TaskH RUN\r\n", Kernel_Get_SysTick());
+		Kernel_Delay(1000);
+	}
+}
 
 

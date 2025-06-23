@@ -21,6 +21,7 @@ static void sEvent_Schedule(uint32_t task_id);
 static void sEvent_Delay(uint32_t task_id);
 static void sEvent_Unblock(uint32_t task_id);
 static void sEvent_Terminate(uint32_t task_id);
+static void sEvent_Create(uint32_t task_id);
 
 static void sIdle_Task(void);
 
@@ -61,10 +62,11 @@ uint32_t Kernel_Task_Create(KernelTaskFunc_t start_func) {
     uint32_t pc = (uint32_t)start_func;
     Port_Task_Create(task_frame, pc);
 
-    new_tcb->state = TASK_READY;
-    if (task_id != sIdle_task_id) {
-    	Kernel_TaskQ_Enqueue(TASK_READY, task_id);
-    }
+//    new_tcb->state = TASK_READY;
+//    if (task_id != sIdle_task_id) {
+//    	Kernel_TaskQ_Enqueue(TASK_READY, task_id);
+//    }
+    sEvent_Create(task_id);
 
     return task_id;
 }
@@ -162,8 +164,13 @@ void sEvent_Unblock(uint32_t task_id) {
 }
 
 void sEvent_Terminate(uint32_t task_id) {
-	Kernel_StateM_Terminate(task_id, EVENT_TERMINATE);
+	Kernel_StateM_Transaction(task_id, EVENT_TERMINATE);
 }
+
+void sEvent_Create(uint32_t task_id) {
+	Kernel_StateM_Transaction(task_id, EVENT_CREATE);
+}
+
 
 void sIdle_Task(void) {
 	Kernel_Task_Yield(sIdle_task_id);
