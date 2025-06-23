@@ -23,6 +23,7 @@ typedef enum KernelTaskState {
 	TASK_RUNNING,
 	TASK_BLOCKED_DELAY,
 	TASK_SUSPENDED,
+	TASK_TERMINATED,
 	TASK_STATE_NUM
 } KernelTaskState_t;
 
@@ -41,6 +42,7 @@ typedef enum KernelTaskEvent {
 	EVENT_SCHEDULE,
 	EVENT_SUSPEND,
 	EVENT_RESUME,
+	EVENT_TERMINATE,
 	EVENT_NUM
 } KernelTaskEvent_t;
 

@@ -11,6 +11,7 @@ void Kernel_Task_Start(void);
 uint32_t Kernel_Task_Create(KernelTaskFunc_t start_func);
 void Kernel_Task_Yield(uint32_t task_id);
 void Kernel_Task_Delay(uint32_t task_id, uint32_t ms);
+void Kernel_Task_Terminate(uint32_t task_id);
 
 void Kernel_Task_Scheduler(void);
 

@@ -10,7 +10,7 @@
 
 #include "types.h"
 
-#define NUM_TRANSACTIONS 6
+#define NUM_TRANSACTIONS 7
 
 void Kernel_StateM_Transaction(uint32_t task_id, KernelTaskEvent_t event);
 

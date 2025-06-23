@@ -11,6 +11,7 @@ void Kernel_Start(void);
 uint32_t Kernel_Create(void (*start_func)(void));
 void Kernel_Yield(void);
 void Kernel_Delay(uint32_t ms);
+void Kernel_Terminate();
 
 uint32_t Kernel_Get_SysTick(void);
 bool Kernel_Is_Initialized(void);

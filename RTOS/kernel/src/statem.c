@@ -17,6 +17,7 @@ static void sRunning_Delay(uint32_t task_id);
 static void sBlocked_Unblock(uint32_t task_id);
 static void sRunning_Suspend(uint32_t task_id);
 static void sSuspended_Resume(uint32_t task_id);
+static void sRunning_Terminate(uint32_t task_id);
 
 KernelEventActionTable_t table[NUM_TRANSACTIONS] = {
 //		|CUR_STATE----------|EVENT-----------|ACTION------------|NEXT_STATE----|
@@ -25,7 +26,8 @@ KernelEventActionTable_t table[NUM_TRANSACTIONS] = {
 		{TASK_RUNNING,    	 EVENT_DELAY,     sRunning_Delay,    TASK_BLOCKED_DELAY},
 		{TASK_RUNNING,   	 EVENT_SUSPEND,   sRunning_Suspend,  TASK_SUSPENDED},
 		{TASK_BLOCKED_DELAY, EVENT_UNBLOCK,   sBlocked_Unblock,  TASK_READY},
-		{TASK_SUSPENDED, 	 EVENT_RESUME,    sSuspended_Resume, TASK_READY}
+		{TASK_SUSPENDED, 	 EVENT_RESUME,    sSuspended_Resume, TASK_READY},
+		{TASK_RUNNING,		 EVENT_TERMINATE, sRunning_Terminate,TASK_TERMINATED}
 };
 
 void Kernel_StateM_Transaction(uint32_t task_id, KernelTaskEvent_t event) {
@@ -65,4 +67,9 @@ void sRunning_Suspend(uint32_t task_id) {
 
 void sSuspended_Resume(uint32_t task_id) {
 
+}
+
+void sRunning_Terminate(uint32_t task_id) {
+	Kernel_Task_Scheduler();
+	Port_Task_Start();
 }

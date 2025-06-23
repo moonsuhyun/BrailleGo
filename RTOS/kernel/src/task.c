@@ -20,6 +20,8 @@ static void sEvent_Yield(uint32_t task_id);
 static void sEvent_Schedule(uint32_t task_id);
 static void sEvent_Delay(uint32_t task_id);
 static void sEvent_Unblock(uint32_t task_id);
+static void sEvent_Terminate(uint32_t task_id);
+
 static void sIdle_Task(void);
 
 //KernelTcb_t* gCurrent_tcb; Global 변수 사용 최소화
@@ -38,7 +40,7 @@ void Kernel_Task_Init(void) {
         sTask_list[i].sp -= sizeof(TaskStackFrame_t) / 4;
         memset(sTask_list[i].stack_base, 0, TASK_STACK_SIZE);
         sTask_list[i].delay_until_time = 0;
-        sTask_list[i].state = TASK_SUSPENDED;
+        sTask_list[i].state = TASK_TERMINATED;
     }
     sIdle_task_id = Kernel_Task_Create(sIdle_Task);
 }
@@ -75,6 +77,10 @@ void Kernel_Task_Delay(uint32_t task_id, uint32_t ms) {
 	uint32_t start_tick = BSP_Get_Tick();
 	sTask_list[task_id].delay_until_time = start_tick + ms;
 	sEvent_Delay(task_id);
+}
+
+void Kernel_Task_Terminate(uint32_t task_id) {
+	sEvent_Terminate(task_id);
 }
 
 // Context switching 시 PendSV에서 호출
@@ -153,6 +159,10 @@ void sEvent_Delay(uint32_t task_id) {
 
 void sEvent_Unblock(uint32_t task_id) {
 	Kernel_StateM_Transaction(task_id, EVENT_UNBLOCK);
+}
+
+void sEvent_Terminate(uint32_t task_id) {
+	Kernel_StateM_Terminate(task_id, EVENT_TERMINATE);
 }
 
 void sIdle_Task(void) {
