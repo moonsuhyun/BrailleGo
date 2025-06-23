@@ -7,8 +7,23 @@
 #include "synch.h"
 #include "BspSysTick.h"
 
+static volatile bool is_kernel_initialized = false;
+
+void Kernel_Init(void) {
+	if (!is_kernel_initialized) {
+		Kernel_Task_Init();
+	}
+}
+
 void Kernel_Start(void) {
-    Kernel_Task_Start();
+	if (!is_kernel_initialized) {
+		is_kernel_initialized = true;
+		Kernel_Task_Start();
+	}
+}
+
+uint32_t Kernel_Create(void (*start_func)(void)) {
+	return Kernel_Task_Create(start_func);
 }
 
 void Kernel_Yield(void) {
@@ -21,6 +36,10 @@ void Kernel_Delay(uint32_t ms) {
 
 uint32_t Kernel_Get_SysTick(void) {
 	return BSP_Get_Tick();
+}
+
+bool Kernel_Is_Initialized(void) {
+	return is_kernel_initialized;
 }
 
 void Kernel_send_events(uint32_t event_list) {

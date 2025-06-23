@@ -8,16 +8,16 @@
 
 #include "PortHandler.h"
 
+#include <stdio.h>
 #include <stdbool.h>
 
 #include "task.h"
 #include "types.h"
 #include "devio.h"
 #include "stm32f1xx.h"
-#include "main.h"
+#include "kernel.h"
 
 extern UART_HandleTypeDef huart2;
-extern bool is_kernel_initialized;
 static KernelTcb_t* current_tcb;
 
 
@@ -102,7 +102,7 @@ __attribute ((naked)) void Port_Handler_PendSV(void) {
 }
 
 void Port_Handler_SysTick(void) {
-	if (is_kernel_initialized) {
+	if (Kernel_Is_Initialized()) {
 		Kernel_Task_SysTick_Callback();
 	}
 }

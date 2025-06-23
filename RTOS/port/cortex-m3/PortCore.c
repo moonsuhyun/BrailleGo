@@ -33,7 +33,7 @@ void Port_Core_Disable_PendSV(void) {
 }
 
 void Port_Core_Wait_For_Interrupt(void) {
-
+	__WFI();
 }
 
 void Port_Core_Trigger_PendSV(void) {

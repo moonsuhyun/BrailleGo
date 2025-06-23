@@ -46,7 +46,7 @@ void sReady_Schedule(uint32_t task_id) {
 }
 
 void sRunning_Yield(uint32_t task_id) {
-	if (task_id != IDLE_TASK_ID) {
+	if (task_id != Kernel_Task_Get_Idle_Task_Id()) {
 		Kernel_TaskQ_Enqueue(TASK_READY, task_id);
 	}
 	Port_Core_Trigger_PendSV();

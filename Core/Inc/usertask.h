@@ -12,4 +12,13 @@ __attribute ((used)) volatile void Task1(void);
 __attribute ((used)) volatile void Task2(void);
 __attribute ((used)) volatile void Task3(void);
 
+void TaskA(void);
+void TaskB(void);
+
+void TaskC(void);
+void TaskD(void);
+void TaskE(void);
+
+void TaskF(void);
+
 #endif /* INC_USERTASK_H_ */

@@ -3,8 +3,6 @@
 
 #include "types.h"
 
-#define IDLE_TASK_ID 0
-
 
 typedef void (*KernelTaskFunc_t)(void);
 
@@ -16,7 +14,7 @@ void Kernel_Task_Delay(uint32_t task_id, uint32_t ms);
 
 void Kernel_Task_Scheduler(void);
 
-
+uint32_t Kernel_Task_Get_Idle_Task_Id(void);
 uint32_t Kernel_Task_Get_Current_Task_Id(void);
 void Kernel_Task_Set_Current_Task_Id(uint32_t task_id);
 

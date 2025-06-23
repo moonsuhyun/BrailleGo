@@ -21,7 +21,8 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include "stdint.h"
+#include <stdio.h>
+#include <stdint.h>
 #include "kernel.h"
 #include "devio.h"
 
@@ -47,7 +48,7 @@
 UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
-volatile bool is_kernel_initialized = false;
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -55,7 +56,8 @@ void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_USART2_UART_Init(void);
 /* USER CODE BEGIN PFP */
-static void Kernel_init();
+static void sKernel_Init();
+static void sInit_Task();
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -95,7 +97,7 @@ int main(void)
   MX_USART2_UART_Init();
   /* USER CODE BEGIN 2 */
   printf("Kernel init...\r\n");
-  Kernel_init();
+  sKernel_Init();
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -224,21 +226,25 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
-static void Kernel_init(void) {
+static void sKernel_Init(void) {
 	HAL_NVIC_SetPriority(PendSV_IRQn, 0xF, 0);
 
-	uint32_t taskId;
+	Kernel_Init();
 
-	Kernel_Task_Init();
+	sInit_Task();
 
-	taskId = Kernel_Task_Create(Task1);
-	taskId = Kernel_Task_Create(Task2);
-	taskId = Kernel_Task_Create(Task3);
-
-	is_kernel_initialized = true;
-	Kernel_Start();
+    Kernel_Start();
 }
 
+static void sInit_Task(void) {
+	Kernel_Create(TaskA);
+	Kernel_Create(TaskB);
+//	Kernel_Create(TaskC);
+//	Kernel_Create(TaskD);
+//	Kernel_Create(TaskE);
+//	Kernel_Create(TaskF);
+
+}
 /* USER CODE END 4 */
 
 /**

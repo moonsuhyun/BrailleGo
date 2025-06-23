@@ -12,9 +12,10 @@
 
 static KernelTcb_t sTask_list[MAX_TASK_NUM];
 static uint32_t sAllocated_tcb_count;
+static uint32_t sIdle_task_id;
 
 static uint32_t sCurrent_task_id;
-static uint32_t sScheduler_round_robin_algorithm(void);
+static uint32_t sScheduler_Round_Robin_Algorithm(void);
 static void sEvent_Yield(uint32_t task_id);
 static void sEvent_Schedule(uint32_t task_id);
 static void sEvent_Delay(uint32_t task_id);
@@ -39,12 +40,11 @@ void Kernel_Task_Init(void) {
         sTask_list[i].delay_until_time = 0;
         sTask_list[i].state = TASK_SUSPENDED;
     }
-
-    Kernel_Task_Create(sIdle_Task);
+    sIdle_task_id = Kernel_Task_Create(sIdle_Task);
 }
 
 void Kernel_Task_Start(void) {
-	Kernel_StateM_Transaction(IDLE_TASK_ID, EVENT_SCHEDULE);
+	Kernel_StateM_Transaction(sIdle_task_id, EVENT_SCHEDULE);
     Port_Task_Start();
 }
 
@@ -60,7 +60,7 @@ uint32_t Kernel_Task_Create(KernelTaskFunc_t start_func) {
     Port_Task_Create(task_frame, pc);
 
     new_tcb->state = TASK_READY;
-    if (task_id != IDLE_TASK_ID) {
+    if (task_id != sIdle_task_id) {
     	Kernel_TaskQ_Enqueue(TASK_READY, task_id);
     }
 
@@ -81,15 +81,18 @@ void Kernel_Task_Delay(uint32_t task_id, uint32_t ms) {
 void Kernel_Task_Scheduler(void) {
 	uint32_t task_id;
 	if (Kernel_TaskQ_Is_Empty(TASK_READY)) {
-		task_id = IDLE_TASK_ID;
+		task_id = sIdle_task_id;
+		printf("[Tick %u] Idle task(id=%u) scheduled\r\n", BSP_Get_Tick(), task_id);
 	} else {
-		task_id = sScheduler_round_robin_algorithm();
+		task_id = sScheduler_Round_Robin_Algorithm();
 	}
     sEvent_Schedule(task_id);
 }
 
 // getter, setter
-
+uint32_t Kernel_Task_Get_Idle_Task_Id(void) {
+	return sIdle_task_id;
+}
 uint32_t Kernel_Task_Get_Current_Task_Id(void) {
     return sCurrent_task_id;
 }
@@ -128,7 +131,7 @@ void Kernel_Task_SysTick_Callback(void) {
 
 // static functions
 
-uint32_t sScheduler_round_robin_algorithm(void) {
+uint32_t sScheduler_Round_Robin_Algorithm(void) {
 	uint32_t task_id;
 	Kernel_TaskQ_Dequeue(TASK_READY, &task_id);
 	return task_id;
@@ -153,10 +156,9 @@ void sEvent_Unblock(uint32_t task_id) {
 }
 
 void sIdle_Task(void) {
+	Kernel_Task_Yield(sIdle_task_id);
 	while (1) {
-//		printf("Idle Task\r\n");
-		Kernel_Task_Yield(IDLE_TASK_ID);
-		Port_Core_Enable_IRQ();
+		if (!Kernel_TaskQ_Is_Empty(TASK_READY)) Kernel_Task_Yield(sIdle_task_id);
 		Port_Core_Wait_For_Interrupt();
 	}
 }
