@@ -32,21 +32,25 @@
 //}
 
 void TaskA(void) {
+	uint32_t a=0;
     while (1) {
-        printf("[Tick %u] TaskA run\r\n", Kernel_Get_SysTick());
+        printf("[Tick %u] TaskA run &a=%u\r\n", Kernel_Get_SysTick(), &a);
         Kernel_Delay(1000);       // BLOCKED 80tick
         printf("[Tick %u] TaskA after delay\r\n", Kernel_Get_SysTick());
         Kernel_Yield(); // 바로 Ready queue tail에 삽입
     }
 }
 void TaskB(void) {
+	uint32_t b=0;
     while (1) {
-        printf("[Tick %u] TaskB run\r\n", Kernel_Get_SysTick());
+        printf("[Tick %u] TaskB run &b=%u\r\n", Kernel_Get_SysTick(), &b);
         Kernel_Delay(2000);
         printf("[Tick %u] TaskB after delay\r\n", Kernel_Get_SysTick());
         Kernel_Yield();
     }
 }
+
+
 
 void TaskC(void) {
 	while (1) {
