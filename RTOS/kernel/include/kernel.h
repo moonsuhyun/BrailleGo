@@ -4,9 +4,11 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-// user task에서 접근 가능한 kernel service 정의
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-void Kernel_Init(void);
+//extern "C" void Kernel_Init(void);
 void Kernel_Start(void);
 uint32_t Kernel_Create(void (*start_func)(void));
 void Kernel_Yield(void);
@@ -14,7 +16,23 @@ void Kernel_Delay(uint32_t ms);
 void Kernel_Terminate();
 
 uint32_t Kernel_Get_SysTick(void);
-bool Kernel_Is_Initialized(void);
+bool Kernel_Is_Running(void);
+
+#ifdef __cplusplus
+}
+#endif
+
+// user task에서 접근 가능한 kernel service 정의
+
+//void Kernel_Init(void);
+//void Kernel_Start(void);
+//uint32_t Kernel_Create(void (*start_func)(void));
+//void Kernel_Yield(void);
+//void Kernel_Delay(uint32_t ms);
+//void Kernel_Terminate();
+
+//uint32_t Kernel_Get_SysTick(void);
+//bool Kernel_Is_Initialized(void);
 
 //void Kernel_send_events(uint32_t event_list);
 //KernelEventFlag_t Kernel_wait_events(uint32_t waiting_list);

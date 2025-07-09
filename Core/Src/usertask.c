@@ -4,10 +4,10 @@
  *  Created on: May 21, 2025
  *      Author: moon
  */
+#include <Kernel.h>
 #include <stdio.h>
 #include "devio.h"
 #include "devlib.h"
-#include "kernel.h"
 #include "stdlib.h"
 
 //__attribute ((used)) volatile void Task1(void) {

@@ -15,7 +15,8 @@
 
 #define NULL (void*)0
 #define NOT_ENOUGH_TASK_NUM 0xFFFFFFFF
-#define MAX_TASK_NUM (TASK_STACK_AREA_SIZE / TASK_STACK_SIZE)
+//#define MAX_TASK_NUM (TASK_STACK_AREA_SIZE / TASK_STACK_SIZE)
+#define MAX_TASK_NUM 3
 #define TIME_SLICE_CNT 10
 
 typedef enum KernelTaskState {
@@ -54,12 +55,6 @@ typedef struct KernelTaskCirQ {
     uint32_t Queue[MAX_TASK_NUM];
 } KernelTaskCirQ_t;
 
-typedef struct KernelEventActionTable {
-	KernelTaskState_t current_state;
-	KernelTaskEvent_t event;
-	void (*action)(uint32_t task_id);
-	KernelTaskState_t next_state;
-} KernelEventActionTable_t;
 
 typedef struct TaskQIterator {
 	uint32_t index;
