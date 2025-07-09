@@ -5,9 +5,9 @@
  *      Author: moon
  */
 
+
 #include "taskq.h"
 
-#include "task.h"
 
 static KernelTaskCirQ_t sTaskQ[TASK_STATE_NUM];
 

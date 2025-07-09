@@ -17,13 +17,13 @@
   */
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
+#include <Kernel.h>
 #include "main.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include <stdio.h>
 #include <stdint.h>
-#include "kernel.h"
 #include "devio.h"
 
 #include "usertask.h"
@@ -237,14 +237,14 @@ static void sKernel_Init(void) {
 }
 
 static void sInit_Task(void) {
-//	Kernel_Create(TaskA);
-//	Kernel_Create(TaskB);
+	Kernel_Create(TaskA);
+	Kernel_Create(TaskB);
 //	Kernel_Create(TaskC);
 //	Kernel_Create(TaskD);
 //	Kernel_Create(TaskE);
 //	Kernel_Create(TaskF);
-	Kernel_Create(TaskG);
-	Kernel_Create(TaskH);
+//	Kernel_Create(TaskG);
+//	Kernel_Create(TaskH);
 
 }
 /* USER CODE END 4 */

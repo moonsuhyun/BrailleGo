@@ -6,16 +6,16 @@
  */
 
 
+#include <Kernel.h>
 #include "PortHandler.h"
 
 #include <stdio.h>
 #include <stdbool.h>
+#include <TaskManager.h>
 
-#include "task.h"
 #include "types.h"
 #include "devio.h"
 #include "stm32f1xx.h"
-#include "kernel.h"
 
 extern UART_HandleTypeDef huart2;
 static KernelTcb_t* current_tcb;
@@ -31,7 +31,7 @@ void Port_Handler_HardFault(uint32_t* sp) {
 
 __attribute ((naked)) void Port_Handler_SVC(void) {
 	asm volatile ("PUSH  {r7, lr}\n");
-	current_tcb = Kernel_Task_Get_Current_Tcb();
+	current_tcb = Kernel_Task_Get_Current_Task();
 	asm volatile ("POP   {r7, lr}\n");
     asm volatile (
         // SVC를 호출한 스택프레임 선택
@@ -76,7 +76,7 @@ __attribute ((naked)) void Port_Handler_SVC(void) {
 
 __attribute ((naked)) void Port_Handler_PendSV(void) {
 	asm volatile ("PUSH  {r7, lr}\n");
-	current_tcb = Kernel_Task_Get_Current_Tcb();
+	current_tcb = Kernel_Task_Get_Current_Task();
 	asm volatile ("POP   {r7, lr}\n");
 	asm volatile (
 		// 현재 태스크 컨텍스트 백업
@@ -88,7 +88,7 @@ __attribute ((naked)) void Port_Handler_PendSV(void) {
 	);
 	asm volatile ("PUSH  {r7, lr}\n");
 	Kernel_Task_Scheduler();
-	current_tcb = Kernel_Task_Get_Current_Tcb();
+	current_tcb = Kernel_Task_Get_Current_Task();
 	asm volatile ("POP   {r7, lr}\n");
 	asm volatile (
 		// 다음 태스크 컨택스트 복원
@@ -102,7 +102,7 @@ __attribute ((naked)) void Port_Handler_PendSV(void) {
 }
 
 void Port_Handler_SysTick(void) {
-	if (Kernel_Is_Initialized()) {
+	if (Kernel_Is_Running()) {
 		Kernel_Task_SysTick_Callback();
 	}
 }
