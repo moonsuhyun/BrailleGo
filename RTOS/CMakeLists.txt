@@ -4,16 +4,12 @@ file(GLOB RTOS_SOURCES
         "lib/*.c"
 )
 
-if(TARGET_PROCESSOR STREQUAL "cortex-m3")
-    file(GLOB PORT_SOURCES "port/cortex-m3/*.c")
-    list(APPEND RTOS_SOURCES ${PORT_SOURCES})
-    add_library(rtos_handler OBJECT port/cortex-m3/PortHandler.c)
-endif ()
+file(GLOB PORT_SOURCES "port/${TARGET_PROCESSOR}/*.c")
+list(APPEND RTOS_SOURCES ${PORT_SOURCES})
+add_library(rtos_handler OBJECT port/${TARGET_PROCESSOR}/PortHandler.c)
 
-if(TARGET_MCU STREQUAL "stm32f103")
-    file(GLOB BSP_SOURCES "bsp/stm32f103/*.c")
-    list(APPEND RTOS_SOURCES ${BSP_SOURCES})
-endif ()
+file(GLOB BSP_SOURCES "bsp/${TARGET_MCU}/*.c")
+list(APPEND RTOS_SOURCES ${BSP_SOURCES})
 
 add_library(rtos STATIC ${RTOS_SOURCES})
 
@@ -24,7 +20,9 @@ target_include_directories(rtos
         PRIVATE
             ${CMAKE_CURRENT_SOURCE_DIR}/kernel/internal
             ${CMAKE_CURRENT_SOURCE_DIR}/bsp
+            ${CMAKE_CURRENT_SOURCE_DIR}/bsp/${TARGET_MCU}
             ${CMAKE_CURRENT_SOURCE_DIR}/port
+            ${CMAKE_CURRENT_SOURCE_DIR}/port/${TARGET_PROCESSOR}
 )
 
 target_link_libraries(rtos PUBLIC cmsis stm32hal)
@@ -36,7 +34,9 @@ target_include_directories(rtos_handler
         PRIVATE
             ${CMAKE_CURRENT_SOURCE_DIR}/kernel/internal
             ${CMAKE_CURRENT_SOURCE_DIR}/bsp
+            ${CMAKE_CURRENT_SOURCE_DIR}/bsp/${TARGET_MCU}
             ${CMAKE_CURRENT_SOURCE_DIR}/port
+            ${CMAKE_CURRENT_SOURCE_DIR}/port/${TARGET_PROCESSOR}
 )
 
 target_link_libraries(rtos_handler PUBLIC cmsis stm32hal)
