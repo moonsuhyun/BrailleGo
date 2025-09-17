@@ -8,7 +8,7 @@
 extern "C" {
 #endif
 
-//extern "C" void Kernel_Init(void);
+void Kernel_Init(void);
 void Kernel_Start(void);
 uint32_t Kernel_Create(void (*start_func)(void));
 void Kernel_Yield(void);

@@ -8,9 +8,11 @@
 .metadata
 .launch
 
+cmake-build-debug/
 Debug/
 Release/
 build/
+.idea/
 *.o
 *.d
 *.elf

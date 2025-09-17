@@ -24,7 +24,7 @@
 /* USER CODE BEGIN Includes */
 #include <stdio.h>
 #include <stdint.h>
-#include "devio.h"
+#include <devio.h>
 
 #include "usertask.h"
 /* USER CODE END Includes */
@@ -57,7 +57,7 @@ static void MX_GPIO_Init(void);
 static void MX_USART2_UART_Init(void);
 /* USER CODE BEGIN PFP */
 static void sKernel_Init();
-static void sInit_Task();
+static void sTask_Init();
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -231,12 +231,12 @@ static void sKernel_Init(void) {
 
 	Kernel_Init();
 
-	sInit_Task();
+	sTask_Init();
 
     Kernel_Start();
 }
 
-static void sInit_Task(void) {
+static void sTask_Init(void) {
 	Kernel_Create(TaskA);
 	Kernel_Create(TaskB);
 //	Kernel_Create(TaskC);

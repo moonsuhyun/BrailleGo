@@ -16,17 +16,6 @@
 TaskManager::TaskManager() {
 	m_allocated_task_count = 0;
 	m_running_task_id = 0;
-
-	Kernel_TaskQ_Init();
-
-	for (uint32_t i = 0; i < MAX_TASK_NUM; i++) {
-		uint32_t* stack_pointer = (uint32_t*)(TASK_STACK_TOP - i * TASK_STACK_SIZE);
-		uint8_t* stack_base = (uint8_t*)(TASK_STACK_TOP - (i + 1) * TASK_STACK_SIZE);
-		m_task_list[i].Init(stack_pointer, stack_base, i);
-	}
-//	m_idle_task_id = TaskCreate(&TaskManager::sIdleTask);
-	m_idle_task_id = m_allocated_task_count++;
-	m_task_list[m_idle_task_id].InitIdleTask((uint32_t)&TaskManager::sIdleTask);
 }
 
 TaskManager::~TaskManager() {
@@ -56,8 +45,20 @@ void TaskManager::SetRunningTaskID(uint32_t id) {
 	m_running_task_id = id;
 }
 
-uint32_t TaskManager::GetIdleTaskID(void) {
-	return m_idle_task_id;
+uint32_t TaskManager::GetInitTaskID(void) {
+	return m_init_task_id;
+}
+
+void TaskManager::Init(void) {
+	Kernel_TaskQ_Init();
+	for (uint32_t i = 0; i < MAX_TASK_NUM; i++) {
+		uint32_t* stack_pointer = (uint32_t*)(TASK_STACK_TOP - i * TASK_STACK_SIZE);
+		uint8_t* stack_base = (uint8_t*)(TASK_STACK_TOP - (i + 1) * TASK_STACK_SIZE);
+		m_task_list[i].Init(stack_pointer, stack_base, i);
+	}
+//	m_idle_task_id = TaskCreate(&TaskManager::sIdleTask);
+	m_init_task_id = m_allocated_task_count++;
+	m_task_list[m_init_task_id].InitIdleTask((uint32_t)&TaskManager::sInitTask);
 }
 
 TaskManager& TaskManager::sGetInstance() {
@@ -76,7 +77,7 @@ uint32_t TaskManager::schedulerRoundRobinAlgorithm(void) {
 }
 
 void TaskManager::Start(void) {
-	m_task_list[m_idle_task_id].SetNextState(EVENT_SCHEDULE);
+	m_task_list[m_init_task_id].SetNextState(EVENT_SCHEDULE);
 	Port_Task_Start();
 }
 
@@ -88,6 +89,8 @@ uint32_t TaskManager::TaskCreate(KernelTaskFunc_t start_func) {
 	Task& new_task = m_task_list[task_id];
 	new_task.SetProgramCounter((uint32_t)start_func);
 	new_task.SetNextState(EVENT_CREATE);
+
+	return task_id;
 }
 
 void TaskManager::TaskYield(void) {
@@ -106,7 +109,7 @@ void TaskManager::TaskTerminate(void) {
 void TaskManager::Scheduler(void) {
 	uint32_t task_id;
 	if (Kernel_TaskQ_Is_Empty(TASK_READY)) {
-		task_id = m_idle_task_id;
+		task_id = m_init_task_id;
 		printf("[Tick %u] Idle task(id=%u) scheduled\r\n", BSP_Get_Tick(), task_id);
 	} else {
 		task_id = schedulerRoundRobinAlgorithm();
@@ -115,7 +118,7 @@ void TaskManager::Scheduler(void) {
 }
 
 
-void TaskManager::sIdleTask(void) {
+void TaskManager::sInitTask(void) {
 	TaskManager& task_manager = TaskManager::sGetInstance();
 	task_manager.TaskYield();
 	while (1) {

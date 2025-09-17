@@ -16,8 +16,9 @@
 #define NULL (void*)0
 #define NOT_ENOUGH_TASK_NUM 0xFFFFFFFF
 //#define MAX_TASK_NUM (TASK_STACK_AREA_SIZE / TASK_STACK_SIZE)
-#define MAX_TASK_NUM 3
+// #define MAX_TASK_NUM 3
 #define TIME_SLICE_CNT 10
+#define STACK_CANARY_VALUE 0xDEADBEEF
 
 typedef enum KernelTaskState {
 	TASK_READY,

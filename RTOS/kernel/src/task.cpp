@@ -42,12 +42,12 @@ void Task::SetNextState(KernelTaskEvent_t event) {
 			{TASK_RUNNING,		 EVENT_TERMINATE, &Task::runningTerminate, TASK_TERMINATED},
 			{TASK_TERMINATED,    EVENT_CREATE,    &Task::terminatedCreate, TASK_READY}
 	};
-	for (uint32_t i = 0; i < sizeof(table); i++) {
+	for (uint32_t i = 0; i < sizeof(table)/sizeof(table[0]); i++) {
 		if (m_state == table[i].current_state && event == table[i].event) {
-			Port_Core_Disable_PendSV();
+ 			Port_Core_Disable_PendSV();
 			m_state = table[i].next_state;
-			(this->*table[i].action)();
-			Port_Core_Enable_PendSV();
+			if (table[i].action != nullptr) (this->*table[i].action)();
+ 			Port_Core_Enable_PendSV();
 			break;
 		}
 	}
@@ -64,7 +64,7 @@ void Task::readySchedule(void) {
 
 void Task::runningYield(void) {
 	TaskManager& task_manager = TaskManager::sGetInstance();
-	if (m_id != task_manager.GetIdleTaskID()) {
+	if (m_id != task_manager.GetInitTaskID()) {
 		Kernel_TaskQ_Enqueue(TASK_READY, m_id);
 	}
 	Port_Core_Trigger_PendSV();
@@ -92,8 +92,9 @@ void Task::runningTerminate(void) {
 }
 
 void Task::terminatedCreate(void) {
+	*((uint32_t*) m_stack_base) = STACK_CANARY_VALUE;
 	TaskManager& task_manager = TaskManager::sGetInstance();
-	if (m_id != task_manager.GetIdleTaskID()) {
+	if (m_id != task_manager.GetInitTaskID()) {
 		Kernel_TaskQ_Enqueue(TASK_READY, m_id);
 	}
 }

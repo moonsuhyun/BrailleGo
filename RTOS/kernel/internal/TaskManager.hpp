@@ -16,14 +16,15 @@ class TaskManager {
 private:
 	Task m_task_list[MAX_TASK_NUM];
 	uint32_t m_allocated_task_count;
-	uint32_t m_idle_task_id;
+	uint32_t m_init_task_id;
 	uint32_t m_running_task_id;
 	TaskManager();
 	uint32_t schedulerRoundRobinAlgorithm(void);
 //	static TaskManager s_instance;
-	static void sIdleTask(void);
+	static void sInitTask(void);
 public:
 	virtual ~TaskManager();
+	void Init(void);
 	void Start(void);
 	uint32_t TaskCreate(KernelTaskFunc_t start_func);
 	void TaskYield(void);
@@ -33,7 +34,7 @@ public:
 	const Task* GetRunningTask(void);
 	void SysTickCallback(void);
 	void SetRunningTaskID(uint32_t id);
-	uint32_t GetIdleTaskID(void);
+	uint32_t GetInitTaskID(void);
 	static TaskManager& sGetInstance(void);
 //	static const Task* sGetCurrentTask(void);
 //	static void sSysTickCallback(void);

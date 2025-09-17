@@ -77,7 +77,7 @@ bool Kernel_Is_Running(void) {
 
 void Kernel_Init(void) {
 	Kernel::sGetInstance();
-	TaskManager::sGetInstance();
+	TaskManager::sGetInstance().Init();
 }
 //static volatile bool is_kernel_initialized = false;
 //
