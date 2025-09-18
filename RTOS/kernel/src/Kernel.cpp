@@ -1,10 +1,29 @@
 
 #include <Kernel.hpp>
+
+#include "TaskManager.hpp"
+#include "BspHwInit.h"
 #include "BspSysTick.h"
 
 Kernel::Kernel() {
 	m_is_running = false;
 }
+
+void Kernel::Init()
+{
+	/* Reset of all peripherals, Initializes the Flash interface and the Systick. */
+	HAL_Init();
+
+	/* Configure the system clock */
+	SystemClock_Config();
+
+	/* Initialize all configured peripherals */
+	MX_GPIO_Init();
+	MX_USART2_UART_Init();
+
+	HAL_NVIC_SetPriority(PendSV_IRQn, 0xF, 0);
+}
+
 
 void Kernel::Start(void) {
 	m_is_running = true;
@@ -76,7 +95,7 @@ bool Kernel_Is_Running(void) {
 }
 
 void Kernel_Init(void) {
-	Kernel::sGetInstance();
+	Kernel::sGetInstance().Init();
 	TaskManager::sGetInstance().Init();
 }
 //static volatile bool is_kernel_initialized = false;

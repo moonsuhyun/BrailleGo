@@ -6,7 +6,6 @@
  */
 #include <Kernel.h>
 #include <stdio.h>
-#include "devio.h"
 #include "devlib.h"
 #include "stdlib.h"
 

@@ -9,7 +9,6 @@
 #include "taskq.h"
 #include "PortTask.h"
 #include "stdio.h"
-#include "devio.h"
 #include "BspMemoryMap.h"
 #include "BspSysTick.h"
 

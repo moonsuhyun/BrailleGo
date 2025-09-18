@@ -27,8 +27,8 @@ set(CMAKE_C_STANDARD 11)
 #add_compile_options(-mfloat-abi=soft)
 
 set(TARGET_PROCESSOR "cortex-m3" CACHE STRING "Target processor architecture")
-set(TARGET_MCU "stm32f103" CACHE STRING "Target MCU")
-set(MCU_${TARGET_MCU} ON)
+set(TARGET_BOARD "stm32f103" CACHE STRING "Target Board")
+set(MCU_${TARGET_BOARD} ON)
 
 add_compile_options(-mcpu=${TARGET_PROCESSOR} -mthumb -mthumb-interwork)
 add_compile_options(-ffunction-sections -fdata-sections -fno-common -fmessage-length=0)
@@ -55,8 +55,7 @@ endif ()
 
 add_definitions(-DDEBUG -DUSE_HAL_DRIVER -DSTM32F103xB)
 
-include_directories(Core/Inc)
-
 add_subdirectory(Drivers)
+add_subdirectory(BSP)
 add_subdirectory(RTOS)
 add_subdirectory(Core)

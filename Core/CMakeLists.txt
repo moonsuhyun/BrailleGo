@@ -1,17 +1,18 @@
 file(GLOB_RECURSE CORE_SOURCES "Src/*.*")
 
-list(APPEND CORE_SOURCES "Startup/startup_stm32f103rbtx.s")
+list(APPEND CORE_SOURCES "${CMAKE_SOURCE_DIR}/BSP/${TARGET_BOARD}/Startup/startup_stm32f103rbtx.s")
 
-set(LINKER_SCRIPT ${CMAKE_SOURCE_DIR}/STM32F103RBTX_FLASH.ld)
+set(LINKER_SCRIPT ${CMAKE_SOURCE_DIR}/BSP/${TARGET_BOARD}/Ld/STM32F103RBTX_FLASH.ld)
 
 add_executable(${PROJECT_NAME}.elf ${CORE_SOURCES} ${LINKER_SCRIPT})
 
+target_include_directories(${PROJECT_NAME}.elf PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/Inc)
+
 target_link_libraries(${PROJECT_NAME}.elf
         PRIVATE
-            cmsis
-            stm32hal
+            bsp
             rtos
-            rtos_handler
+#            rtos_handler
 )
 
 target_link_options(${PROJECT_NAME}.elf PRIVATE -T ${LINKER_SCRIPT})

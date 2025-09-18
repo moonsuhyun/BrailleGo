@@ -1,4 +1,10 @@
 
+add_library(hal_conf INTERFACE)
+target_include_directories(hal_conf
+        INTERFACE
+            ${CMAKE_SOURCE_DIR}/BSP/${TARGET_BOARD}/HalConf
+)
+
 add_library(cmsis INTERFACE)
 target_include_directories(cmsis
         INTERFACE
@@ -14,4 +20,4 @@ target_include_directories(stm32hal
             ${CMAKE_CURRENT_SOURCE_DIR}/STM32F1xx_HAL_Driver/Inc/Legacy
 )
 
-target_link_libraries(stm32hal PUBLIC cmsis)
+target_link_libraries(stm32hal PUBLIC cmsis hal_conf)

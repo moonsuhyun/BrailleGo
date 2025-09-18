@@ -9,14 +9,13 @@
 #define KERNEL_INCLUDE_KERNEL_HPP_
 
 #include <stdint.h>
-#include "TaskManager.hpp"
 
 class Kernel {
 private:
 	bool m_is_running;
 	Kernel();
 public:
-//	void Init(void);
+	void Init(void);
 	void Start(void);
 	uint32_t Create(void (*start_func)(void));
 	void Yield(void);

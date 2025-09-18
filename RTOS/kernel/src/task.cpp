@@ -2,7 +2,6 @@
 #include <Task.hpp>
 #include "PortTask.h"
 #include "stdio.h"
-#include "devio.h"
 #include "memory.h"
 #include "BspMemoryMap.h"
 #include "taskq.h"
