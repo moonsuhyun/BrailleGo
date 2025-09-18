@@ -57,6 +57,7 @@ extern "C" {
 /* Private variables ---------------------------------------------------------*/
 /* USER CODE BEGIN PV */
 static KernelTcb_t* current_tcb;
+static int32_t stack_canary;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -99,15 +100,28 @@ void NMI_Handler(void)
 void HardFault_Handler(uint32_t* sp)
 {
   /* USER CODE BEGIN HardFault_IRQn 0 */
-	__asm volatile (
-            "tst   lr, #4        \n"
-            "ite   eq            \n"
-            "mrseq r0, msp       \n"
-            "mrsne r0, psp       \n"
+	__disable_irq();
 
-    );
-	uint32_t pc = sp[6];
-	printf("pc=%x\n", pc);
+	asm volatile("mrs r0, psp\n");
+
+	printf("\r\n[KERNEL PANIC] Hard Fault\r\n");
+
+	int32_t task_id = Kernel_Task_Get_Current_Task_Id();
+	printf("Task ID: %d\r\n", task_id);
+
+	printf("\r\nCPU Registers at time of fault:\r\n");
+	printf("    R0:  0x%08X    R1:  0x%08X    R2:  0x%08X\r\n", sp[8], sp[9], sp[10]);
+	printf("    R3:  0x%08X    R4:  0x%08X    R5:  0x%08X\r\n", sp[11], sp[0], sp[1]);
+	printf("    R6:  0x%08X    R7:  0x%08X    R8:  0x%08X\r\n", sp[2], sp[3], sp[4]);
+	printf("    R9:  0x%08X    R10: 0x%08X    R11: 0x%08X\r\n", sp[5], sp[6], sp[7]);
+	printf("    R9:  0x%08X    R10: 0x%08X    R11: 0x%08X\r\n", sp[5], sp[6], sp[7]);
+	printf("    R12: 0x%08X    LR:  0x%08X    PC:  0x%08X\r\n", sp[12], sp[13], sp[14]);
+	printf("    PSR: 0x%08X\r\n", sp[15]);
+
+	printf("\r\nStack Info:\r\n");
+	int32_t usage = TASK_STACK_TOP - task_id * TASK_STACK_SIZE - (int32_t) sp;
+	printf("    SP: 0x%08X    %u/%u bytes used.\r\n", sp, usage, TASK_STACK_SIZE);
+
   /* USER CODE END HardFault_IRQn 0 */
   while (1)
   {
@@ -119,9 +133,28 @@ void HardFault_Handler(uint32_t* sp)
 /**
   * @brief This function handles Memory management fault.
   */
-void MemManage_Handler(void)
+void MemManage_Handler(uint32_t* sp)
 {
   /* USER CODE BEGIN MemoryManagement_IRQn 0 */
+	__disable_irq();
+
+	printf("\r\n[KERNEL PANIC] Task Stack Overflow\r\n");
+
+	int32_t task_id = Kernel_Task_Get_Current_Task_Id();
+	printf("Task ID: %d\r\n", task_id);
+
+	printf("\r\nCPU Registers at time of fault:\r\n");
+	printf("    R0:  0x%08X    R1:  0x%08X    R2:  0x%08X\r\n", sp[8], sp[9], sp[10]);
+	printf("    R3:  0x%08X    R4:  0x%08X    R5:  0x%08X\r\n", sp[11], sp[0], sp[1]);
+	printf("    R6:  0x%08X    R7:  0x%08X    R8:  0x%08X\r\n", sp[2], sp[3], sp[4]);
+	printf("    R9:  0x%08X    R10: 0x%08X    R11: 0x%08X\r\n", sp[5], sp[6], sp[7]);
+	printf("    R9:  0x%08X    R10: 0x%08X    R11: 0x%08X\r\n", sp[5], sp[6], sp[7]);
+	printf("    R12: 0x%08X    LR:  0x%08X    PC:  0x%08X\r\n", sp[12], sp[13], sp[14]);
+	printf("    PSR: 0x%08X\r\n", sp[15]);
+
+	printf("\r\nStack Info:\r\n");
+	int32_t usage = TASK_STACK_TOP - task_id * TASK_STACK_SIZE - (int32_t) sp;
+	printf("    SP: 0x%08X    %u/%u bytes used.\r\n", sp, usage, TASK_STACK_SIZE);
 
   /* USER CODE END MemoryManagement_IRQn 0 */
   while (1)
@@ -234,17 +267,24 @@ void DebugMon_Handler(void)
 __attribute((naked)) void PendSV_Handler(void)
 {
   /* USER CODE BEGIN PendSV_IRQn 0 */
-	// uint32_t stack_canary_value = STACK_CANARY_VALUE;
 	asm volatile ("PUSH  {r7, lr}\n");
+	stack_canary = STACK_CANARY_VALUE;
 	current_tcb = (KernelTcb_t*) Kernel_Task_Get_Current_Task();
 	asm volatile ("POP   {r7, lr}\n");
 	asm volatile (
 		// 현재 태스크 컨텍스트 백업
 		"MRS   r0, psp             \n"
 		"STMDB r0!, {r4-r11}       \n"  // 현재 태스크 스택 프레임 백업
-		"LDR   r1, =current_tcb    \n"
-		"LDR   r1, [r1]            \n"  // r1 = Current_tcp->sp
-		"STR   r0, [r1]            \n"  // PSP 백업
+		"LDR   r1, =current_tcb    \n"  // r1 = &(current_tcb)
+		"LDR   r1, [r1]            \n"  // r1 = current_tcb
+		"STR   r0, [r1]            \n"  // PSP 백업 *current_tcb = r0
+		// stack overflow 검사
+		"ldr   r1, [r1, #4]        \n"  // r1 = current_tcb->stack_base
+		"ldr   r1, [r1]            \n"  // r1 = *(stack_base)
+		"ldr   r2, =stack_canary   \n"  // r3 = &(stack_canary)
+		"ldr   r2, [r2]            \n"  // r2 = stack_canary
+		"cmp   r2, r1              \n"
+		"bne   MemManage_Handler   \n"
 	);
 	asm volatile ("PUSH  {r7, lr}\n");
 	Kernel_Task_Scheduler();
@@ -255,10 +295,6 @@ __attribute((naked)) void PendSV_Handler(void)
 		"LDR   r1, =current_tcb    \n"
 		"LDR   r1, [r1]            \n"
 		"LDR   r0, [r1]            \n"  // r0 = Next_tcb->sp
-		// "LDR   r1, [r1, #4]        \n"  // r1 = Next_tcb->stack_base
-		// "LDR   r2, =stack_canary_value\n"
-		// "CMP   r1, r2              \n"
-		// "BNE   MemManage_Handler   \n"
 		"LDMIA r0!, {r4-r11}       \n"  // 다음 태스크 스택 프레임 복구
 		"MSR   psp, r0             \n"  // PSP 복구
 		"BX    lr                  \n"

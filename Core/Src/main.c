@@ -53,6 +53,7 @@ static void sTask_Init(void)
 {
     Kernel_Create(TaskA);
     Kernel_Create(TaskB);
+    Kernel_Create(Task_Stack_Test);
     //	Kernel_Create(TaskC);
     //	Kernel_Create(TaskD);
     //	Kernel_Create(TaskE);

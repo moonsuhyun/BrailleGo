@@ -22,5 +22,4 @@ build/
 *.map
 *.axf
 
-*.cfg
 *.launch

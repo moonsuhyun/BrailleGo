@@ -32,6 +32,7 @@ public:
 	void TaskTerminate(void);
 	void Scheduler(void);
 	const Task* GetRunningTask(void);
+	uint32_t GetRunningTaskId(void);
 	void SysTickCallback(void);
 	void SetRunningTaskID(uint32_t id);
 	uint32_t GetInitTaskID(void);
@@ -45,6 +46,7 @@ extern "C" {
 #endif
 
 const Task* Kernel_Task_Get_Current_Task(void);
+int32_t Kernel_Task_Get_Current_Task_Id(void);
 void Kernel_Task_SysTick_Callback(void);
 void Kernel_Task_Scheduler(void);
 

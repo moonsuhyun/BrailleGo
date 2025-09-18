@@ -25,6 +25,12 @@ const Task* TaskManager::GetRunningTask(void) {
 	return &m_task_list[m_running_task_id];
 }
 
+uint32_t TaskManager::GetRunningTaskId(void)
+{
+	return m_running_task_id;
+}
+
+
 void TaskManager::SysTickCallback(void) {
 	if (!Kernel_TaskQ_Is_Empty(TASK_BLOCKED_DELAY)) {
 		TaskQIterator_t iter;
@@ -130,8 +136,14 @@ void TaskManager::sInitTask(void) {
 const Task* Kernel_Task_Get_Current_Task(void) {
 	TaskManager& task_manager = TaskManager::sGetInstance();
 	return task_manager.GetRunningTask();
-
 }
+
+int32_t Kernel_Task_Get_Current_Task_Id()
+{
+	TaskManager& task_manager = TaskManager::sGetInstance();
+	return task_manager.GetRunningTaskId();
+}
+
 
 void Kernel_Task_SysTick_Callback(void) {
 	TaskManager& task_manager = TaskManager::sGetInstance();

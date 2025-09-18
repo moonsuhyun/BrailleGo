@@ -35,6 +35,7 @@ typedef struct KernelTcb {
     uint8_t* stack_base;
     uint32_t delay_until_time;
     KernelTaskState_t state;
+	uint32_t id;
 } KernelTcb_t;
 
 typedef enum KernelTaskEvent {

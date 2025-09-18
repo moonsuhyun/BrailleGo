@@ -24,4 +24,6 @@ void TaskF(void);
 void TaskG(void);
 void TaskH(void);
 
+void Task_Stack_Test(void);
+
 #endif /* INC_USERTASK_H_ */

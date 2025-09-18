@@ -15,6 +15,7 @@ void Task::Init(uint32_t* stack_pointer, uint8_t* stack_base, uint32_t id) {
 	m_stack_base = stack_base;
 	m_id = id;
 	memset(m_stack_base, 0, TASK_STACK_SIZE);
+	*((int32_t*)m_stack_base) = STACK_CANARY_VALUE;
 	m_delay_time = 0;
 	m_state = TASK_TERMINATED;
 }
@@ -91,7 +92,6 @@ void Task::runningTerminate(void) {
 }
 
 void Task::terminatedCreate(void) {
-	*((uint32_t*) m_stack_base) = STACK_CANARY_VALUE;
 	TaskManager& task_manager = TaskManager::sGetInstance();
 	if (m_id != task_manager.GetInitTaskID()) {
 		Kernel_TaskQ_Enqueue(TASK_READY, m_id);
