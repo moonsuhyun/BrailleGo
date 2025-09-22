@@ -15,7 +15,7 @@ extern "C" {
 #include <stdint.h>
 
 void NMI_Handler(void);
-void HardFault_Handler(uint32_t* sp);
+void HardFault_Handler();
 void MemManage_Handler(uint32_t* sp);
 void BusFault_Handler(void);
 void UsageFault_Handler(void);

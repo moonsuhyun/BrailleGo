@@ -4,6 +4,7 @@
 #include "TaskManager.hpp"
 #include "BspHwInit.h"
 #include "BspSysTick.h"
+#include "PortCore.h"
 
 Kernel::Kernel() {
 	m_is_running = false;
@@ -21,7 +22,7 @@ void Kernel::Init()
 	MX_GPIO_Init();
 	MX_USART2_UART_Init();
 
-	HAL_NVIC_SetPriority(PendSV_IRQn, 0xF, 0);
+	Port_Core_Interrupt_Init();
 }
 
 
@@ -30,8 +31,8 @@ void Kernel::Start(void) {
 	TaskManager::sGetInstance().Start();
 }
 
-uint32_t Kernel::Create(void (*start_func)(void)) {
-	return TaskManager::sGetInstance().TaskCreate(start_func);
+uint32_t Kernel::Create(KernelTaskFunc_t start_func, void* arg) {
+	return TaskManager::sGetInstance().TaskCreate(start_func, arg);
 }
 
 void Kernel::Yield(void) {
@@ -64,9 +65,9 @@ void Kernel_Start(void) {
 	kernel.Start();
 }
 
-uint32_t Kernel_Create(void (*start_func)(void)) {
+uint32_t Kernel_Create(void (*start_func)(void*), void* arg) {
 	Kernel& kernel = Kernel::sGetInstance();
-	return kernel.Create(start_func);
+	return kernel.Create(start_func, arg);
 }
 
 void Kernel_Yield(void) {

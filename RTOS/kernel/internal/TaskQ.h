@@ -1,5 +1,5 @@
 /*
- * taskq.h
+ * TaskQ.h
  *
  *  Created on: May 27, 2025
  *      Author: moon
@@ -25,6 +25,9 @@ bool Kernel_TaskQ_Remove(KernelTaskState_t q_name, uint32_t task_id);
 bool Kernel_TaskQ_Iterator_Init(TaskQIterator_t* iter, KernelTaskState_t q_name, uint32_t* task_id);
 bool Kernel_TaskQ_Iterator_Get(TaskQIterator_t* iter);
 bool Kernel_TaskQ_Snapshot(KernelTaskState_t q_name, uint32_t snapshot[]);
+
+bool Kernel_TaskQ_Enqueue_Sorted_By_Wake_Time(KernelTaskState_t q_name, uint32_t task_id);
+uint32_t Kernel_TaskQ_Get_Size(KernelTaskState_t q_name);
 
 #ifdef __cplusplus
 }

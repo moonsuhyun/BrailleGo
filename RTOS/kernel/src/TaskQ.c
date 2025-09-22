@@ -7,9 +7,12 @@
 
 
 #include "taskq.h"
+#include "TaskManager.h"
 
 
 static KernelTaskCirQ_t sTaskQ[TASK_STATE_NUM];
+
+static inline uint32_t sGet_Physical_Index(KernelTaskState_t q_name, uint32_t index);
 
 void Kernel_TaskQ_Init(void) {
     for (uint32_t i=0; i<TASK_STATE_NUM; i++) {
@@ -53,7 +56,7 @@ bool Kernel_TaskQ_Dequeue(KernelTaskState_t q_name, uint32_t* task_id) {
     uint32_t idx = sTaskQ[q_name].front++;
     sTaskQ[q_name].front %= MAX_TASK_NUM;
 
-    *task_id = sTaskQ[q_name].Queue[idx];
+    if (task_id) *task_id = sTaskQ[q_name].Queue[idx];
     sTaskQ[q_name].Queue[idx] = 0;
 
     sTaskQ[q_name].size--;
@@ -66,7 +69,7 @@ bool Kernel_TaskQ_Get_Front(KernelTaskState_t q_name, uint32_t* task_id) {
 	if (Kernel_TaskQ_Is_Empty(q_name)) return false;
 
 	uint32_t idx = sTaskQ[q_name].front;
-	*task_id = sTaskQ[q_name].Queue[idx];
+	if (task_id) *task_id = sTaskQ[q_name].Queue[idx];
 
 	return true;
 }
@@ -144,4 +147,41 @@ bool Kernel_TaskQ_Snapshot(KernelTaskState_t q_name, uint32_t snapshot[]) {
 		q_idx = (q_idx+1) % MAX_TASK_NUM;
 	}
 	return true;
+}
+
+bool Kernel_TaskQ_Enqueue_Sorted_By_Wake_Time(KernelTaskState_t q_name, uint32_t task_id)
+{
+	if (q_name >= TASK_STATE_NUM) return false;
+	if (Kernel_TaskQ_Is_Full(q_name)) return false;
+
+	uint32_t wake_time = Kernel_Task_Get_Wake_Time_By_Id(task_id);
+
+	int32_t position = 0;
+	for (; position < sTaskQ[q_name].size; position++)
+	{
+		uint32_t currrent_id = sTaskQ[q_name].Queue[sGet_Physical_Index(q_name, position)];
+		uint32_t current_wake_time = Kernel_Task_Get_Wake_Time_By_Id(currrent_id);
+
+		if (current_wake_time >= wake_time) break;
+	}
+
+	for (int32_t i = sTaskQ[q_name].size - 1; i >= position; i--)
+		sTaskQ[q_name].Queue[sGet_Physical_Index(q_name, i + 1)] = sTaskQ[q_name].Queue[sGet_Physical_Index(q_name, i)];
+
+	sTaskQ[q_name].Queue[sGet_Physical_Index(q_name, position)] = task_id;
+
+	sTaskQ[q_name].size++;
+	sTaskQ[q_name].rear = (sTaskQ[q_name].front + sTaskQ[q_name].size) % MAX_TASK_NUM;
+
+	return true;
+}
+
+uint32_t Kernel_TaskQ_Get_Size(KernelTaskState_t q_name)
+{
+	return sTaskQ[q_name].size;
+}
+
+static inline uint32_t sGet_Physical_Index(KernelTaskState_t q_name, uint32_t index)
+{
+	return (sTaskQ[q_name].front + index) % MAX_TASK_NUM;
 }

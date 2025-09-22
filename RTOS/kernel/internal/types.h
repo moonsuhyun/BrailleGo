@@ -17,8 +17,9 @@
 #define NOT_ENOUGH_TASK_NUM 0xFFFFFFFF
 //#define MAX_TASK_NUM (TASK_STACK_AREA_SIZE / TASK_STACK_SIZE)
 // #define MAX_TASK_NUM 3
-#define TIME_SLICE_CNT 10
+#define TIME_SLICE_QUANTUM 10
 #define STACK_CANARY_VALUE 0xDEADBEEF
+#define IDLE_TASK_ID 0
 
 typedef enum KernelTaskState {
 	TASK_READY,
@@ -26,6 +27,8 @@ typedef enum KernelTaskState {
 	TASK_BLOCKED_DELAY,
 	TASK_SUSPENDED,
 	TASK_TERMINATED,
+	TASK_IDLE_RUNNING,
+	TASK_IDLE_READY,
 	TASK_STATE_NUM
 } KernelTaskState_t;
 
@@ -33,7 +36,8 @@ typedef enum KernelTaskState {
 typedef struct KernelTcb {
     uint32_t* sp;
     uint8_t* stack_base;
-    uint32_t delay_until_time;
+	uint32_t time_slice;
+    uint32_t wake_time;
     KernelTaskState_t state;
 	uint32_t id;
 } KernelTcb_t;

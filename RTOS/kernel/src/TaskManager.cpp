@@ -6,11 +6,14 @@
  */
 
 #include <TaskManager.hpp>
-#include "taskq.h"
+#include "TaskQ.h"
 #include "PortTask.h"
 #include "stdio.h"
 #include "BspMemoryMap.h"
 #include "BspSysTick.h"
+#include "types.h"
+
+Task TaskManager::s_task_list[MAX_TASK_NUM];
 
 TaskManager::TaskManager() {
 	m_allocated_task_count = 0;
@@ -22,7 +25,7 @@ TaskManager::~TaskManager() {
 }
 
 const Task* TaskManager::GetRunningTask(void) {
-	return &m_task_list[m_running_task_id];
+	return &s_task_list[m_running_task_id];
 }
 
 uint32_t TaskManager::GetRunningTaskId(void)
@@ -30,19 +33,19 @@ uint32_t TaskManager::GetRunningTaskId(void)
 	return m_running_task_id;
 }
 
+uint32_t TaskManager::GetWakeTimeById(uint32_t id)
+{
+	return s_task_list[id].GetWakeTime();
+}
 
 void TaskManager::SysTickCallback(void) {
-	if (!Kernel_TaskQ_Is_Empty(TASK_BLOCKED_DELAY)) {
-		TaskQIterator_t iter;
+	while (!Kernel_TaskQ_Is_Empty(TASK_BLOCKED_DELAY))
+	{
 		uint32_t task_id;
-		if (Kernel_TaskQ_Iterator_Init(&iter, TASK_BLOCKED_DELAY, &task_id)){
-			while (Kernel_TaskQ_Iterator_Get(&iter)) {
-				if (m_task_list[task_id].IsDelayTimeOver()) {
-					Kernel_TaskQ_Remove(TASK_BLOCKED_DELAY, task_id);
-					m_task_list[task_id].SetNextState(EVENT_UNBLOCK);
-				}
-			}
-		}
+		Kernel_TaskQ_Get_Front(TASK_BLOCKED_DELAY, &task_id);
+		if (!s_task_list[task_id].IsDelayTimeOver()) break;
+		Kernel_TaskQ_Dequeue(TASK_BLOCKED_DELAY, &task_id);
+		s_task_list[task_id].SetNextState(EVENT_UNBLOCK);
 	}
 }
 
@@ -50,20 +53,19 @@ void TaskManager::SetRunningTaskID(uint32_t id) {
 	m_running_task_id = id;
 }
 
-uint32_t TaskManager::GetInitTaskID(void) {
-	return m_init_task_id;
-}
+// uint32_t TaskManager::GetInitTaskID(void) {
+// 	return m_init_task_id;
+// }
 
 void TaskManager::Init(void) {
 	Kernel_TaskQ_Init();
 	for (uint32_t i = 0; i < MAX_TASK_NUM; i++) {
 		uint32_t* stack_pointer = (uint32_t*)(TASK_STACK_TOP - i * TASK_STACK_SIZE);
 		uint8_t* stack_base = (uint8_t*)(TASK_STACK_TOP - (i + 1) * TASK_STACK_SIZE);
-		m_task_list[i].Init(stack_pointer, stack_base, i);
+		s_task_list[i].Init(stack_pointer, stack_base, i);
 	}
 //	m_idle_task_id = TaskCreate(&TaskManager::sIdleTask);
-	m_init_task_id = m_allocated_task_count++;
-	m_task_list[m_init_task_id].InitIdleTask((uint32_t)&TaskManager::sInitTask);
+	s_task_list[m_allocated_task_count++].InitIdleTask((uint32_t)&TaskManager::sTaskWrapper, (uint32_t)&TaskManager::sIdleTask);
 }
 
 TaskManager& TaskManager::sGetInstance() {
@@ -77,53 +79,53 @@ TaskManager& TaskManager::sGetInstance() {
 
 uint32_t TaskManager::schedulerRoundRobinAlgorithm(void) {
 	uint32_t task_id;
-	Kernel_TaskQ_Dequeue(TASK_READY, &task_id);
+	Kernel_TaskQ_Get_Front(TASK_READY, &task_id);
 	return task_id;
 }
 
 void TaskManager::Start(void) {
-	m_task_list[m_init_task_id].SetNextState(EVENT_SCHEDULE);
+	s_task_list[IDLE_TASK_ID].SetNextState(EVENT_SCHEDULE);
 	Port_Task_Start();
 }
 
-uint32_t TaskManager::TaskCreate(KernelTaskFunc_t start_func) {
+uint32_t TaskManager::TaskCreate(KernelTaskFunc_t start_func, void* arg) {
 	uint32_t task_id = m_allocated_task_count++;
 
 	if (m_allocated_task_count > MAX_TASK_NUM) return NOT_ENOUGH_TASK_NUM;
 
-	Task& new_task = m_task_list[task_id];
-	new_task.SetProgramCounter((uint32_t)start_func);
+	Task& new_task = s_task_list[task_id];
+	new_task.SetProgramCounter((uint32_t)&TaskManager::sTaskWrapper, (uint32_t)start_func, arg);
 	new_task.SetNextState(EVENT_CREATE);
 
 	return task_id;
 }
 
 void TaskManager::TaskYield(void) {
-	m_task_list[m_running_task_id].SetNextState(EVENT_YIELD);
+	s_task_list[m_running_task_id].SetNextState(EVENT_YIELD);
 }
 
 void TaskManager::TaskDelay(uint32_t ms) {
-	m_task_list[m_running_task_id].SetDelayTime(ms);
-	m_task_list[m_running_task_id].SetNextState(EVENT_DELAY);
+	s_task_list[m_running_task_id].SetDelayTime(ms);
+	s_task_list[m_running_task_id].SetNextState(EVENT_DELAY);
 }
 
 void TaskManager::TaskTerminate(void) {
-	m_task_list[m_running_task_id].SetNextState(EVENT_TERMINATE);
+	s_task_list[m_running_task_id].SetNextState(EVENT_TERMINATE);
 }
 
 void TaskManager::Scheduler(void) {
 	uint32_t task_id;
 	if (Kernel_TaskQ_Is_Empty(TASK_READY)) {
-		task_id = m_init_task_id;
+		task_id = IDLE_TASK_ID;
 		printf("[Tick %u] Idle task(id=%u) scheduled\r\n", BSP_Get_Tick(), task_id);
 	} else {
 		task_id = schedulerRoundRobinAlgorithm();
 	}
-    m_task_list[task_id].SetNextState(EVENT_SCHEDULE);
+    s_task_list[task_id].SetNextState(EVENT_SCHEDULE);
 }
 
 
-void TaskManager::sInitTask(void) {
+void TaskManager::sIdleTask(void) {
 	TaskManager& task_manager = TaskManager::sGetInstance();
 	task_manager.TaskYield();
 	while (1) {
@@ -132,11 +134,23 @@ void TaskManager::sInitTask(void) {
 	}
 }
 
+void TaskManager::sTaskWrapper(void (*task_func)(void*), void* arg)
+{
+	task_func(arg);
+	TaskManager::sGetInstance().TaskTerminate();
+}
+
 
 const Task* Kernel_Task_Get_Current_Task(void) {
 	TaskManager& task_manager = TaskManager::sGetInstance();
 	return task_manager.GetRunningTask();
 }
+
+// void Kernel_Task_Wrapper(void (*task_func)(void*), void* arg)
+// {
+// 	task_func(arg);
+// 	TaskManager::sGetInstance().TaskTerminate();
+// }
 
 int32_t Kernel_Task_Get_Current_Task_Id()
 {
@@ -154,3 +168,9 @@ void Kernel_Task_Scheduler(void) {
 	TaskManager& task_manager = TaskManager::sGetInstance();
 	task_manager.Scheduler();
 }
+
+uint32_t Kernel_Task_Get_Wake_Time_By_Id(uint32_t id)
+{
+	return TaskManager::sGetInstance().GetWakeTimeById(id);
+}
+

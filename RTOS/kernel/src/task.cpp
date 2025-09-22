@@ -16,13 +16,13 @@ void Task::Init(uint32_t* stack_pointer, uint8_t* stack_base, uint32_t id) {
 	m_id = id;
 	memset(m_stack_base, 0, TASK_STACK_SIZE);
 	*((int32_t*)m_stack_base) = STACK_CANARY_VALUE;
-	m_delay_time = 0;
+	m_wake_time = 0;
 	m_state = TASK_TERMINATED;
 }
 
-void Task::SetProgramCounter(uint32_t pc) {
+void Task::SetProgramCounter(uint32_t wrapper, uint32_t pc, void* arg) {
     TaskStackFrame_t* task_frame = (TaskStackFrame_t*)m_stack_pointer;
-    Port_Task_Create(task_frame, pc);
+    Port_Task_Create(task_frame, wrapper, pc, arg);
 }
 
 //void Task::SetStackFrame(const TaskStackFrame_t& frame) {
@@ -40,7 +40,9 @@ void Task::SetNextState(KernelTaskEvent_t event) {
 			{TASK_BLOCKED_DELAY, EVENT_UNBLOCK,   &Task::blockedUnblock,   TASK_READY},
 			{TASK_SUSPENDED, 	 EVENT_RESUME,    &Task::suspendResume,    TASK_READY},
 			{TASK_RUNNING,		 EVENT_TERMINATE, &Task::runningTerminate, TASK_TERMINATED},
-			{TASK_TERMINATED,    EVENT_CREATE,    &Task::terminatedCreate, TASK_READY}
+			{TASK_TERMINATED,    EVENT_CREATE,    &Task::terminatedCreate, TASK_READY},
+			{TASK_IDLE_READY, EVENT_SCHEDULE, &Task::idleSchedule, TASK_IDLE_RUNNING},
+			{TASK_IDLE_RUNNING, EVENT_YIELD, &Task::idleYield, TASK_IDLE_READY},
 	};
 	for (uint32_t i = 0; i < sizeof(table)/sizeof(table[0]); i++) {
 		if (m_state == table[i].current_state && event == table[i].event) {
@@ -54,24 +56,28 @@ void Task::SetNextState(KernelTaskEvent_t event) {
 }
 
 void Task::SetDelayTime(uint32_t ms) {
-	m_delay_time = BSP_Get_Tick() + ms;
+	m_wake_time = BSP_Get_Tick() + ms;
+}
+
+uint32_t Task::GetWakeTime(void)
+{
+	return m_wake_time;
 }
 
 void Task::readySchedule(void) {
 	TaskManager& task_manager = TaskManager::sGetInstance();
+	m_time_slice = TIME_SLICE_QUANTUM;
+	Kernel_TaskQ_Dequeue(TASK_READY, nullptr);
 	task_manager.SetRunningTaskID(m_id);
 }
 
 void Task::runningYield(void) {
-	TaskManager& task_manager = TaskManager::sGetInstance();
-	if (m_id != task_manager.GetInitTaskID()) {
-		Kernel_TaskQ_Enqueue(TASK_READY, m_id);
-	}
+	Kernel_TaskQ_Enqueue(TASK_READY, m_id);
 	Port_Core_Trigger_PendSV();
 }
 
 void Task::runningDelay(void) {
-	Kernel_TaskQ_Enqueue(TASK_BLOCKED_DELAY, m_id);
+	Kernel_TaskQ_Enqueue_Sorted_By_Wake_Time(TASK_BLOCKED_DELAY, m_id);
 	Port_Core_Trigger_PendSV();
 }
 
@@ -86,27 +92,36 @@ void Task::suspendResume(void) {
 }
 
 void Task::runningTerminate(void) {
-	TaskManager& task_manager = TaskManager::sGetInstance();
-	task_manager.Scheduler();
-	Port_Task_Start();
+	// TaskManager& task_manager = TaskManager::sGetInstance();
+	// task_manager.Scheduler();
+	// Port_Task_Start();
+	Port_Core_Trigger_PendSV();
 }
 
 void Task::terminatedCreate(void) {
 	TaskManager& task_manager = TaskManager::sGetInstance();
-	if (m_id != task_manager.GetInitTaskID()) {
-		Kernel_TaskQ_Enqueue(TASK_READY, m_id);
-	}
+	Kernel_TaskQ_Enqueue(TASK_READY, m_id);
+}
+
+void Task::idleSchedule()
+{
+	TaskManager::sGetInstance().SetRunningTaskID(m_id);
+}
+
+void Task::idleYield()
+{
+	Port_Core_Trigger_PendSV();
 }
 
 bool Task::IsDelayTimeOver(void) {
-	if (m_delay_time > BSP_Get_Tick()) return true;
+	if (m_wake_time < BSP_Get_Tick()) return true;
 	return false;
 }
 
-void Task::InitIdleTask(uint32_t pc) {
+void Task::InitIdleTask(uint32_t wrapper, uint32_t pc) {
 	TaskStackFrame_t* task_frame = (TaskStackFrame_t*)m_stack_pointer;
-	Port_Task_Create(task_frame, pc);
-	m_state = TASK_READY;
+	Port_Task_Create(task_frame, wrapper, pc, NULL);
+	m_state = TASK_IDLE_READY;
 }
 //static KernelTcb_t sTask_list[MAX_TASK_NUM];
 //static uint32_t sAllocated_tcb_count;
@@ -139,7 +154,7 @@ void Task::InitIdleTask(uint32_t pc) {
 //        sTask_list[i].stack_base = (uint8_t*)(TASK_STACK_TOP - (i + 1) * TASK_STACK_SIZE);
 //        sTask_list[i].sp -= sizeof(TaskStackFrame_t) / 4;
 //        memset(sTask_list[i].stack_base, 0, TASK_STACK_SIZE);
-//        sTask_list[i].delay_until_time = 0;
+//        sTask_list[i].wake_time = 0;
 //        sTask_list[i].state = TASK_TERMINATED;
 //    }
 //    sIdle_task_id = Kernel_Task_Create(sIdle_Task);
@@ -176,7 +191,7 @@ void Task::InitIdleTask(uint32_t pc) {
 //
 //void Kernel_Task_Delay(uint32_t task_id, uint32_t ms) {
 //	uint32_t start_tick = BSP_Get_Tick();
-//	sTask_list[task_id].delay_until_time = start_tick + ms;
+//	sTask_list[task_id].wake_time = start_tick + ms;
 //	sEvent_Delay(task_id);
 //}
 //
@@ -226,7 +241,7 @@ void Task::InitIdleTask(uint32_t pc) {
 //		uint32_t task_id;
 //		if (Kernel_TaskQ_Iterator_Init(&iter, TASK_BLOCKED_DELAY, &task_id)){
 //			while (Kernel_TaskQ_Iterator_Get(&iter)) {
-//				if (sTask_list[task_id].delay_until_time <= BSP_Get_Tick()) {
+//				if (sTask_list[task_id].wake_time <= BSP_Get_Tick()) {
 //					Kernel_TaskQ_Remove(TASK_BLOCKED_DELAY, task_id);
 //					sEvent_Unblock(task_id);
 //				}

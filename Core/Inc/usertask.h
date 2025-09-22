@@ -12,8 +12,8 @@ __attribute ((used)) volatile void Task1(void);
 __attribute ((used)) volatile void Task2(void);
 __attribute ((used)) volatile void Task3(void);
 
-void TaskA(void);
-void TaskB(void);
+void TaskA(void *arg);
+void TaskB(void *arg);
 
 void TaskC(void);
 void TaskD(void);
@@ -24,6 +24,6 @@ void TaskF(void);
 void TaskG(void);
 void TaskH(void);
 
-void Task_Stack_Test(void);
+void Task_Stack_Test(void* arg);
 
 #endif /* INC_USERTASK_H_ */

@@ -30,28 +30,30 @@
 //    }
 //}
 
-void TaskA(void) {
+void TaskA(void *arg) {
 	uint32_t a=0;
     while (1) {
         printf("[Tick %u] TaskA run &a=%u\r\n", Kernel_Get_SysTick(), &a);
-        Kernel_Delay(1000);       // BLOCKED 80tick
+        Kernel_Delay(2000);       // BLOCKED 80tick
         printf("[Tick %u] TaskA after delay\r\n", Kernel_Get_SysTick());
-        Kernel_Yield(); // 바로 Ready queue tail에 삽입
+        // Kernel_Yield(); // 바로 Ready queue tail에 삽입
+        // printf("TaskA\r\n");
     }
 }
-void TaskB(void) {
+void TaskB(void *arg) {
 	uint32_t b=0;
     while (1) {
         printf("[Tick %u] TaskB run &b=%u\r\n", Kernel_Get_SysTick(), &b);
-        Kernel_Delay(2000);
+        Kernel_Delay(1000);
         printf("[Tick %u] TaskB after delay\r\n", Kernel_Get_SysTick());
-        Kernel_Yield();
+        // Kernel_Yield();
+        // printf("TaskB\r\n");
     }
 }
 
-void Task_Stack_Test(void)
+void Task_Stack_Test(void* arg)
 {
-    printf("Task SOF\r\n");
-    // char temp[1024] = {0};
-    Kernel_Terminate();
+    printf("Task SOF: %d\r\n", (int32_t) arg);
+    char temp[1024] = {1};
+    // Kernel_Terminate();
 }

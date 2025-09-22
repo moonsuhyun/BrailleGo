@@ -16,7 +16,7 @@ extern "C" {
 
 #include "PortContext.h"
 
-void Port_Task_Create(TaskStackFrame_t* task_frame, uint32_t pc);
+void Port_Task_Create(TaskStackFrame_t* task_frame, uint32_t wrapper, uint32_t pc, void* arg);
 void Port_Task_Start(void);
 
 

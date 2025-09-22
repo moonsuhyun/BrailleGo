@@ -16,10 +16,12 @@ extern "C" {
 
 typedef struct Task Task;
 
+// void Kernel_Task_Wrapper(void (*task_func)(void*), void* arg);
 const Task* Kernel_Task_Get_Current_Task(void);
 int32_t Kernel_Task_Get_Current_Task_Id(void);
 void Kernel_Task_SysTick_Callback(void);
 void Kernel_Task_Scheduler(void);
+uint32_t Kernel_Task_Get_Wake_Time_By_Id(uint32_t id);
 
 #ifdef __cplusplus
 }

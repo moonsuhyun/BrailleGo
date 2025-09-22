@@ -35,6 +35,7 @@ extern "C" {
 #include <stdio.h>
 #include <TaskManager.h>
 #include "types.h"
+#include "TaskQ.h"
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 /* USER CODE END Includes */
@@ -62,7 +63,7 @@ static int32_t stack_canary;
 
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN PFP */
-
+static void sFault_Dump(uint32_t* sp);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -97,31 +98,16 @@ void NMI_Handler(void)
 /**
   * @brief This function handles Hard fault interrupt.
   */
-void HardFault_Handler(uint32_t* sp)
+__attribute((naked)) void HardFault_Handler()
 {
   /* USER CODE BEGIN HardFault_IRQn 0 */
-	__disable_irq();
-
-	asm volatile("mrs r0, psp\n");
-
-	printf("\r\n[KERNEL PANIC] Hard Fault\r\n");
-
-	int32_t task_id = Kernel_Task_Get_Current_Task_Id();
-	printf("Task ID: %d\r\n", task_id);
-
-	printf("\r\nCPU Registers at time of fault:\r\n");
-	printf("    R0:  0x%08X    R1:  0x%08X    R2:  0x%08X\r\n", sp[8], sp[9], sp[10]);
-	printf("    R3:  0x%08X    R4:  0x%08X    R5:  0x%08X\r\n", sp[11], sp[0], sp[1]);
-	printf("    R6:  0x%08X    R7:  0x%08X    R8:  0x%08X\r\n", sp[2], sp[3], sp[4]);
-	printf("    R9:  0x%08X    R10: 0x%08X    R11: 0x%08X\r\n", sp[5], sp[6], sp[7]);
-	printf("    R9:  0x%08X    R10: 0x%08X    R11: 0x%08X\r\n", sp[5], sp[6], sp[7]);
-	printf("    R12: 0x%08X    LR:  0x%08X    PC:  0x%08X\r\n", sp[12], sp[13], sp[14]);
-	printf("    PSR: 0x%08X\r\n", sp[15]);
-
-	printf("\r\nStack Info:\r\n");
-	int32_t usage = TASK_STACK_TOP - task_id * TASK_STACK_SIZE - (int32_t) sp;
-	printf("    SP: 0x%08X    %u/%u bytes used.\r\n", sp, usage, TASK_STACK_SIZE);
-
+	__asm volatile(
+		"TST   lr, #4              \n"
+		"ITE   eq                  \n"
+		"MRSEQ r0, msp             \n"
+		"MRSNE r0, psp             \n"
+		"bl    sFault_Dump\n"
+		);
   /* USER CODE END HardFault_IRQn 0 */
   while (1)
   {
@@ -133,28 +119,29 @@ void HardFault_Handler(uint32_t* sp)
 /**
   * @brief This function handles Memory management fault.
   */
-void MemManage_Handler(uint32_t* sp)
+__attribute((naked)) void MemManage_Handler(uint32_t* sp)
 {
   /* USER CODE BEGIN MemoryManagement_IRQn 0 */
-	__disable_irq();
+	printf("\r\n[[[[[[[[[[[[[[ KERNEL PANIC ]]]]]]]]]]]]]]\r\n");
+	printf("\r\n=========  TASK STACK OVERFLOW  ==========\r\n");
 
-	printf("\r\n[KERNEL PANIC] Task Stack Overflow\r\n");
-
-	int32_t task_id = Kernel_Task_Get_Current_Task_Id();
+	int32_t task_id = current_tcb->id;
 	printf("Task ID: %d\r\n", task_id);
 
-	printf("\r\nCPU Registers at time of fault:\r\n");
-	printf("    R0:  0x%08X    R1:  0x%08X    R2:  0x%08X\r\n", sp[8], sp[9], sp[10]);
-	printf("    R3:  0x%08X    R4:  0x%08X    R5:  0x%08X\r\n", sp[11], sp[0], sp[1]);
-	printf("    R6:  0x%08X    R7:  0x%08X    R8:  0x%08X\r\n", sp[2], sp[3], sp[4]);
-	printf("    R9:  0x%08X    R10: 0x%08X    R11: 0x%08X\r\n", sp[5], sp[6], sp[7]);
-	printf("    R9:  0x%08X    R10: 0x%08X    R11: 0x%08X\r\n", sp[5], sp[6], sp[7]);
-	printf("    R12: 0x%08X    LR:  0x%08X    PC:  0x%08X\r\n", sp[12], sp[13], sp[14]);
-	printf("    PSR: 0x%08X\r\n", sp[15]);
-
-	printf("\r\nStack Info:\r\n");
+	printf("\r\nTask Stack Info:\r\n");
 	int32_t usage = TASK_STACK_TOP - task_id * TASK_STACK_SIZE - (int32_t) sp;
-	printf("    SP: 0x%08X    %u/%u bytes used.\r\n", sp, usage, TASK_STACK_SIZE);
+	printf("  PSP: 0x%08X    %u/%u bytes used.\r\n", sp, usage, TASK_STACK_SIZE);
+
+	printf("\r\nStacked Registers at time of fault:\r\n");
+	printf("  R0:  0x%08X    R1:  0x%08X    R2:  0x%08X\r\n", sp[8], sp[9], sp[10]);
+	printf("  R3:  0x%08X    R4:  0x%08X    R5:  0x%08X\r\n", sp[11], sp[0], sp[1]);
+	printf("  R6:  0x%08X    R7:  0x%08X    R8:  0x%08X\r\n", sp[2], sp[3], sp[4]);
+	printf("  R9:  0x%08X    R10: 0x%08X    R11: 0x%08X\r\n", sp[5], sp[6], sp[7]);
+	printf("  R9:  0x%08X    R10: 0x%08X    R11: 0x%08X\r\n", sp[5], sp[6], sp[7]);
+	printf("  R12: 0x%08X    LR:  0x%08X    PC:  0x%08X\r\n", sp[12], sp[13], sp[14]);
+	printf("  PSR: 0x%08X\r\n", sp[15]);
+
+	printf("\r\n============= END FAULT DUMP =============\r\n");
 
   /* USER CODE END MemoryManagement_IRQn 0 */
   while (1)
@@ -167,10 +154,16 @@ void MemManage_Handler(uint32_t* sp)
 /**
   * @brief This function handles Prefetch fault, memory access fault.
   */
-void BusFault_Handler(void)
+__attribute((naked)) void BusFault_Handler(void)
 {
   /* USER CODE BEGIN BusFault_IRQn 0 */
-
+	__asm volatile(
+		"TST   lr, #4              \n"
+		"ITE   eq                  \n"
+		"MRSEQ r0, msp             \n"
+		"MRSNE r0, psp             \n"
+		"b     sFault_Dump\n"
+		);
   /* USER CODE END BusFault_IRQn 0 */
   while (1)
   {
@@ -182,10 +175,16 @@ void BusFault_Handler(void)
 /**
   * @brief This function handles Undefined instruction or illegal state.
   */
-void UsageFault_Handler(void)
+__attribute((naked)) void UsageFault_Handler(void)
 {
   /* USER CODE BEGIN UsageFault_IRQn 0 */
-
+	__asm volatile(
+		"TST   lr, #4              \n"
+		"ITE   eq                  \n"
+		"MRSEQ r0, msp             \n"
+		"MRSNE r0, psp             \n"
+		"bl    sFault_Dump\n"
+		);
   /* USER CODE END UsageFault_IRQn 0 */
   while (1)
   {
@@ -311,9 +310,9 @@ __attribute((naked)) void PendSV_Handler(void)
 void SysTick_Handler(void)
 {
   /* USER CODE BEGIN SysTick_IRQn 0 */
-
+	// __disable_irq();
   /* USER CODE END SysTick_IRQn 0 */
-  HAL_IncTick();
+	HAL_IncTick();
   /* USER CODE BEGIN SysTick_IRQn 1 */
 	if (Kernel_Is_Running()) {
 		Kernel_Task_SysTick_Callback();
@@ -358,6 +357,104 @@ void EXTI15_10_IRQHandler(void)
 
 /* USER CODE BEGIN 1 */
 
+static void prflag(uint32_t cond, const char *name) {
+	if (cond) printf("  - %s\r\n", name);
+}
+
+__attribute((used)) void sFault_Dump(uint32_t* sp) {
+    uint32_t cfsr = SCB->CFSR;
+    uint32_t hfsr = SCB->HFSR;
+    uint32_t dfsr = SCB->DFSR;
+    uint32_t mmfar= SCB->MMFAR;
+    uint32_t bfar = SCB->BFAR;
+    uint32_t afsr = SCB->AFSR;
+    uint32_t shcsr= SCB->SHCSR;
+	printf("\r\n[[[[[[[[[[[[[[ KERNEL PANIC ]]]]]]]]]]]]]]\r\n");
+    printf("\r\n==============  FAULT DUMP  ==============\r\n");
+
+    printf("\r\nSystem Handler Control & State (SHCSR)=0x%08lX\r\n", (unsigned long)shcsr);
+
+    printf("\r\nHardFault Status (HFSR)=0x%08lX\r\n", (unsigned long)hfsr);
+    prflag(hfsr & SCB_HFSR_VECTTBL_Msk, "VECTTBL: BusFault on vector fetch");
+    prflag(hfsr & SCB_HFSR_FORCED_Msk,  "FORCED : Escalated fault (see CFSR)");
+#if defined(SCB_HFSR_DEBUGEVT_Msk)
+    prflag(hfsr & SCB_HFSR_DEBUGEVT_Msk,"DEBUGEVT: Debug event");
+#endif
+
+    printf("\r\nConfigurable Fault Status (CFSR)=0x%08lX\r\n", (unsigned long)cfsr);
+
+    // MemManage Fault Status (MMFSR: [7:0])
+    uint32_t mmfsr = (cfsr & 0x000000FFu);
+    if (mmfsr) {
+        printf("  MemManage Fault (MMFSR)=0x%02lX\r\n", (unsigned long)mmfsr);
+        prflag(mmfsr & (1u<<0), "IACCVIOL: Instruction access violation");
+        prflag(mmfsr & (1u<<1), "DACCVIOL: Data access violation");
+        prflag(mmfsr & (1u<<3), "MUNSTKERR: Unstacking error");
+        prflag(mmfsr & (1u<<4), "MSTKERR: Stacking error");
+        prflag(mmfsr & (1u<<5), "MLSPERR: Lazy FP stacking error (M4F/M7F)");
+        if (mmfsr & (1u<<7)) {
+            printf("  -> MMFAR=0x%08lX (valid)\r\n", (unsigned long)mmfar);
+        }
+    }
+
+    // BusFault Status (BFSR: [15:8])
+    uint32_t bfsr = (cfsr >> 8) & 0xFFu;
+    if (bfsr) {
+        printf("  BusFault (BFSR)=0x%02lX\r\n", (unsigned long)bfsr);
+        prflag(bfsr & (1u<<0), "IBUSERR: Instruction bus error");
+        prflag(bfsr & (1u<<1), "PRECISERR: Precise data bus error");
+        prflag(bfsr & (1u<<2), "IMPRECISERR: Imprecise data bus error");
+        prflag(bfsr & (1u<<3), "UNSTKERR: Unstacking error");
+        prflag(bfsr & (1u<<4), "STKERR: Stacking error");
+        prflag(bfsr & (1u<<5), "LSPERR: Lazy FP stacking error (M4F/M7F)");
+        if (bfsr & (1u<<7)) {
+            printf("  -> BFAR=0x%08lX (valid)\r\n", (unsigned long)bfar);
+        }
+    }
+
+    // UsageFault Status (UFSR: [31:16])
+    uint32_t ufsr = (cfsr >> 16);
+    if (ufsr) {
+        printf("  UsageFault (UFSR)=0x%04lX\r\n", (unsigned long)ufsr);
+        prflag(ufsr & (1u<<0), "UNDEFINSTR: Undefined instruction");
+        prflag(ufsr & (1u<<1), "INVSTATE: Invalid state");
+        prflag(ufsr & (1u<<2), "INVPC: Invalid PC load");
+        prflag(ufsr & (1u<<3), "NOCP: No coprocessor");
+        prflag(ufsr & (1u<<8), "UNALIGNED: Unaligned access trap");
+        prflag(ufsr & (1u<<9), "DIVBYZERO: Divide by zero");
+    }
+
+    printf("\r\nDebug Fault Status (DFSR)=0x%08lX\r\n", (unsigned long)dfsr);
+    printf("Auxiliary Fault Status (AFSR)=0x%08lX\r\n", (unsigned long)afsr);
+
+    // 현재 SP, MSP/PSP, CONTROL
+	bool sp_sel = __get_CONTROL() & 2;
+    printf("\r\nSP sel: %s\r\n", (sp_sel ? "PSP" : "MSP"));
+    printf("  MSP=0x%08lX  PSP=0x%08lX  CONTROL=0x%08lX\r\n",
+           (unsigned long)__get_MSP(), (unsigned long)__get_PSP(), (unsigned long)__get_CONTROL());
+
+	if (sp_sel)
+	{
+		int32_t task_id = current_tcb->id;
+		printf("Task ID: %d\r\n", task_id);
+
+		printf("\r\nTask Stack Info:\r\n");
+		int32_t usage = TASK_STACK_TOP - task_id * TASK_STACK_SIZE - (int32_t) sp;
+		printf("    SP: 0x%08X    %u/%u bytes used.\r\n", sp, usage, TASK_STACK_SIZE);
+	}
+
+	printf("\r\nStacked Registers at time of fault:\r\n");
+	printf("  R0:  0x%08X    R1:  0x%08X    R2:  0x%08X\r\n", sp[0], sp[1], sp[2]);
+	printf("  R3:  0x%08X    R12: 0x%08X    LR:  0x%08X\r\n", sp[3], sp[4], sp[5]);
+	printf("  PC:  0x%08X    PSR: 0x%08X\r\n", sp[6], sp[7]);
+
+    printf("\r\n============= END FAULT DUMP =============\r\n");
+
+	while (1)
+	{
+
+	}
+}
 /* USER CODE END 1 */
 
 

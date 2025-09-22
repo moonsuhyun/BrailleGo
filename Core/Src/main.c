@@ -51,9 +51,10 @@ static void sKernel_Init(void)
 
 static void sTask_Init(void)
 {
-    Kernel_Create(TaskA);
-    Kernel_Create(TaskB);
-    Kernel_Create(Task_Stack_Test);
+    Kernel_Create(TaskA, NULL);
+    Kernel_Create(TaskB, NULL);
+    int32_t arg = 10;
+    Kernel_Create(Task_Stack_Test, (void*) arg);
     //	Kernel_Create(TaskC);
     //	Kernel_Create(TaskD);
     //	Kernel_Create(TaskE);
