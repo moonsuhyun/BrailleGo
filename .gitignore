@@ -8,9 +8,12 @@
 .metadata
 .launch
 
+Backu
+cmake-build-debug/
 Debug/
 Release/
 build/
+.idea/
 *.o
 *.d
 *.elf
@@ -19,5 +22,4 @@ build/
 *.map
 *.axf
 
-*.cfg
 *.launch

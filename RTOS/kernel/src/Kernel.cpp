@@ -1,18 +1,38 @@
 
 #include <Kernel.hpp>
+
+#include "TaskManager.hpp"
+#include "BspHwInit.h"
 #include "BspSysTick.h"
+#include "PortCore.h"
 
 Kernel::Kernel() {
 	m_is_running = false;
 }
+
+void Kernel::Init()
+{
+	/* Reset of all peripherals, Initializes the Flash interface and the Systick. */
+	HAL_Init();
+
+	/* Configure the system clock */
+	SystemClock_Config();
+
+	/* Initialize all configured peripherals */
+	MX_GPIO_Init();
+	MX_USART2_UART_Init();
+
+	Port_Core_Interrupt_Init();
+}
+
 
 void Kernel::Start(void) {
 	m_is_running = true;
 	TaskManager::sGetInstance().Start();
 }
 
-uint32_t Kernel::Create(void (*start_func)(void)) {
-	return TaskManager::sGetInstance().TaskCreate(start_func);
+uint32_t Kernel::Create(KernelTaskFunc_t start_func, void* arg) {
+	return TaskManager::sGetInstance().TaskCreate(start_func, arg);
 }
 
 void Kernel::Yield(void) {
@@ -45,9 +65,9 @@ void Kernel_Start(void) {
 	kernel.Start();
 }
 
-uint32_t Kernel_Create(void (*start_func)(void)) {
+uint32_t Kernel_Create(void (*start_func)(void*), void* arg) {
 	Kernel& kernel = Kernel::sGetInstance();
-	return kernel.Create(start_func);
+	return kernel.Create(start_func, arg);
 }
 
 void Kernel_Yield(void) {
@@ -76,8 +96,8 @@ bool Kernel_Is_Running(void) {
 }
 
 void Kernel_Init(void) {
-	Kernel::sGetInstance();
-	TaskManager::sGetInstance();
+	Kernel::sGetInstance().Init();
+	TaskManager::sGetInstance().Init();
 }
 //static volatile bool is_kernel_initialized = false;
 //

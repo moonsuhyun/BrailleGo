@@ -8,9 +8,9 @@
 extern "C" {
 #endif
 
-//extern "C" void Kernel_Init(void);
+void Kernel_Init(void);
 void Kernel_Start(void);
-uint32_t Kernel_Create(void (*start_func)(void));
+uint32_t Kernel_Create(void (*start_func)(void*), void* arg);
 void Kernel_Yield(void);
 void Kernel_Delay(uint32_t ms);
 void Kernel_Terminate();

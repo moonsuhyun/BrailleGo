@@ -6,7 +6,6 @@
  */
 #include <Kernel.h>
 #include <stdio.h>
-#include "devio.h"
 #include "devlib.h"
 #include "stdlib.h"
 
@@ -31,68 +30,30 @@
 //    }
 //}
 
-void TaskA(void) {
+void TaskA(void *arg) {
 	uint32_t a=0;
     while (1) {
         printf("[Tick %u] TaskA run &a=%u\r\n", Kernel_Get_SysTick(), &a);
-        Kernel_Delay(1000);       // BLOCKED 80tick
+        Kernel_Delay(2000);       // BLOCKED 80tick
         printf("[Tick %u] TaskA after delay\r\n", Kernel_Get_SysTick());
-        Kernel_Yield(); // 바로 Ready queue tail에 삽입
+        // Kernel_Yield(); // 바로 Ready queue tail에 삽입
+        // printf("TaskA\r\n");
     }
 }
-void TaskB(void) {
+void TaskB(void *arg) {
 	uint32_t b=0;
     while (1) {
         printf("[Tick %u] TaskB run &b=%u\r\n", Kernel_Get_SysTick(), &b);
-        Kernel_Delay(2000);
+        Kernel_Delay(1000);
         printf("[Tick %u] TaskB after delay\r\n", Kernel_Get_SysTick());
-        Kernel_Yield();
+        // Kernel_Yield();
+        // printf("TaskB\r\n");
     }
 }
 
-
-
-void TaskC(void) {
-	while (1) {
-		printf("[Tick %u] TaskC RUN\r\n", Kernel_Get_SysTick());
-		Kernel_Delay(2000);
-		printf("[Tick %u] TaskC UNBLOCK\r\n", Kernel_Get_SysTick());
-	}
+void Task_Stack_Test(void* arg)
+{
+    printf("Task SOF: %d\r\n", (int32_t) arg);
+    char temp[1024] = {1};
+    // Kernel_Terminate();
 }
-void TaskD(void) {
-	while (1) {
-		printf("[Tick %u] TaskD RUN\r\n", Kernel_Get_SysTick());
-		Kernel_Delay(2000);
-		printf("[Tick %u] TaskD UNBLOCK\r\n", Kernel_Get_SysTick());
-	}
-}
-void TaskE(void) {
-	while (1) {
-		printf("[Tick %u] TaskE RUN\r\n", Kernel_Get_SysTick());
-		Kernel_Delay(1000);
-		printf("[Tick %u] TaskE UNBLOCK\r\n", Kernel_Get_SysTick());
-	}
-}
-void TaskF(void) {
-	while (1) {
-		printf("[Tick %u] TaskF RUN\r\n", Kernel_Get_SysTick());
-		Kernel_Delay(0);
-		printf("[Tick %u] TaskF UNBLOCK\r\n", Kernel_Get_SysTick());
-	}
-}
-void TaskG(void) {
-	for (uint32_t i=0; i<3; i++) {
-		printf("[Tick %u] TaskG RUN i=%u\r\n", Kernel_Get_SysTick(), i);
-		Kernel_Delay(1000);
-	}
-	printf("[Tick %u] TaskG TERMINATE\r\n", Kernel_Get_SysTick());
-	Kernel_Terminate();
-}
-void TaskH(void) {
-	while (1) {
-		printf("[Tick %u] TaskH RUN\r\n", Kernel_Get_SysTick());
-		Kernel_Delay(1000);
-	}
-}
-
-

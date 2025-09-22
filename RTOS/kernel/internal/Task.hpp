@@ -7,7 +7,8 @@ class Task {
 private:
 	uint32_t* m_stack_pointer;
 	uint8_t* m_stack_base;
-	uint32_t m_delay_time;
+	uint32_t m_time_slice;
+	uint32_t m_wake_time;
 	KernelTaskState_t m_state;
 	uint32_t m_id;
 	typedef struct KernelEventActionTable {
@@ -24,15 +25,18 @@ private:
 	void suspendResume(void);
 	void runningTerminate(void);
 	void terminatedCreate(void);
+	void idleSchedule(void);
+	void idleYield(void);
 public:
 	Task() {}
 	void Init(uint32_t* stack_pointer, uint8_t* stack_base, uint32_t id);
-	void SetProgramCounter(uint32_t pc);
+	void SetProgramCounter(uint32_t wrapper, uint32_t pc, void* arg);
 //	void SetStackFrame(const TaskStackFrame_t& frame);
 	void SetNextState(KernelTaskEvent_t event);
 	void SetDelayTime(uint32_t ms);
+	uint32_t GetWakeTime(void);
 	bool IsDelayTimeOver(void);
-	void InitIdleTask(uint32_t pc);
+	void InitIdleTask(uint32_t wrapper, uint32_t pc);
 };
 
 //typedef void (*KernelTaskFunc_t)(void);

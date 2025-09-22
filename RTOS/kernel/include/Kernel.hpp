@@ -9,16 +9,15 @@
 #define KERNEL_INCLUDE_KERNEL_HPP_
 
 #include <stdint.h>
-#include "TaskManager.hpp"
 
 class Kernel {
 private:
 	bool m_is_running;
 	Kernel();
 public:
-//	void Init(void);
+	void Init(void);
 	void Start(void);
-	uint32_t Create(void (*start_func)(void));
+	uint32_t Create(void (*start_func)(void*), void* arg);
 	void Yield(void);
 	void Delay(uint32_t ms);
 	void Terminate(void);
@@ -33,7 +32,7 @@ extern "C" {
 
 void Kernel_Init(void);
 void Kernel_Start(void);
-uint32_t Kernel_Create(void (*start_func)(void));
+uint32_t Kernel_Create(void (*start_func)(void*), void* arg);
 void Kernel_Yield(void);
 void Kernel_Delay(uint32_t ms);
 void Kernel_Terminate();
