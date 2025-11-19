@@ -2,7 +2,6 @@
 #define KERNEL_TASK_H_
 
 #include "types.h"
-#include "SysCall.h"
 
 class Task {
 private:

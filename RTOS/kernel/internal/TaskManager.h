@@ -28,7 +28,6 @@ int32_t TaskManager_Get_Current_Task_Id(void);
 void TaskManager_SysTick_Callback(void);
 void TaskManager_Scheduler(void);
 uint32_t Kernel_Task_Get_Wake_Time_By_Id(uint32_t id);
-int32_t Kernel_Task_Terminate(void);
 
 #ifdef __cplusplus
 }
