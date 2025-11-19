@@ -1,0 +1,139 @@
+sequenceDiagram
+    autonumber
+    participant L    as Task_L<br/>(저우선순위, Logger)
+    participant M    as Task_M<br/>(중간 우선순위)
+    participant H    as Task_H<br/>(고우선순위)
+    participant MUT  as Mutex
+    participant HW as CPU/하드웨어
+    participant ISR  as ISR
+    participant TM  as TaskManager<br>(스케쥴러)
+    participant PQ  as PriorityQueue
+
+    %% 1. 저우선순위 태스크가 UART 뮤텍스를 쥐고 로그 출력 중
+    activate L
+        L->>MUT: Mutex::Lock()
+        activate MUT
+            MUT-->>L: lock 성공 (owner = L)
+        deactivate MUT
+        L->>HW: write("L: start logging...")
+
+    %% 2. 시분할 타이머(SysTick)로 컨텍스트 스위칭 발생
+        HW->>ISR: Tick 발생<br>SysTick_Handler()
+        ISR->>TM: TaskManager::SysTickCallback()
+        activate TM
+            TM->>L: Task_L.DecreaseTimeSlice()
+            activate L
+                L->>L: Task::SetNextState(EVENT_YIELD)<br>Task::runningYield()<br>태스크 상태 전이
+                activate L
+                    L->>TM: TaskManager::PushToReadyById(Task_L)
+                    activate TM
+                        TM->>PQ: PriorityQueue::Push(&Task_L)
+                        activate PQ
+                        deactivate PQ
+                    deactivate TM
+                    L-->>HW: PendSV Set Pending<br>(컨택스트 스위치 요청)
+                deactivate L
+            deactivate L
+        deactivate TM
+    deactivate L
+
+    HW->>ISR: PendSV_Handler
+    activate ISR
+        ISR-->>HW: Task_L 컨텍스트 저장<br>(PSP에 R4~R11 푸시)
+        ISR->>TM: TaskManager::Scheduler()
+        activate TM
+            TM->>PQ: next_task=PriorityQueue::Pop()
+            activate PQ
+                PQ-->>TM: Task_H TCB 반환
+            deactivate PQ
+            TM->>H: next_task->SetNextState(EVENT_SCHEDULE)
+            activate H
+                H->>H: Task::readySchedule()<br>태스크 상태 전이
+                activate H
+                    H->>H: Time Slice 재설정
+                    H->>TM: TaskManager::SetRunningTaskId(Task_H)
+                    activate TM
+                    deactivate TM
+                deactivate H
+            deactivate H
+            TM-->>ISR: Task_H TCB 반환
+        deactivate TM
+        ISR-->>HW: Task_H 컨택스트 복구
+        ISR-->>HW: 예외 복귀(bx lr)
+    deactivate ISR
+    
+    %% 3. 고우선순위 태스크가 UART 로그를 찍으려고 뮤텍스 획득 시도
+    HW-->>H: Task_H 진입
+    activate H
+        H->>MUT: Mutex::Lock()<br>owner = L 이므로 즉시 획득 불가
+        activate MUT
+            MUT->>TM: TaskManager::MutexWait()
+            activate TM
+             %% 4. 우선순위 상속: 뮤텍스 owner(L)의 우선순위를 H 수준으로 상승
+                TM->>PQ: PriorityQueue::Remove(Task_L)
+                activate PQ
+                deactivate PQ
+                TM->>PQ: PriorityQueue::Push(Task_L, priority(Task_H))<br>(뮤텍스 owner(L)의 우선순위를 H 수준으로 상승)
+                activate PQ
+                deactivate PQ
+                TM->>H: Task_H.SetNextState(EVENT_MUTEX)
+                activate H
+                    H-->>HW: PendSV Set Pending<br>(컨택스트 스위치 요청)
+                deactivate H
+            deactivate TM
+            MUT-->>H: Lock 실패(대기)
+        deactivate MUT
+    deactivate H 
+    HW->>ISR: PendSV_Handler
+    activate ISR
+        ISR-->>HW: Task_H 컨텍스트 저장<br>(PSP에 R4~R11 푸시)
+        ISR->>TM: TaskManager::Scheduler()
+        activate TM
+            TM->>PQ: next_task=PriorityQueue::Pop()
+            activate PQ
+                PQ-->>TM: H의 우선순위를 상속받은<br>Task_L TCB 반환
+            deactivate PQ
+            TM->>L: next_task->SetNextState(EVENT_SCHEDULE)<br>Task State Machine 호출
+            activate L
+                L->>L: Task::readySchedule()<br>태스크 상태 전이
+                activate L
+                    L->>L: Time Slice 재설정
+                    L->>TM: TaskManager::SetRunningTaskId(Task_L)
+                    activate TM
+                    deactivate TM
+                deactivate L
+            deactivate L
+            TM-->>ISR: Task_L TCB 반환
+        deactivate TM
+        ISR-->>HW: Task_L 컨택스트 복구
+        ISR-->>HW: 예외 복귀(bx lr)
+    deactivate ISR
+    HW-->>L: Task_L 진입
+
+    %% 5. 상속된 우선순위로 L이 계속 돌아가서 HW 임계구역 마무리
+    activate L
+        L->>HW: write("L: finish logging...")
+        L->>MUT: Mutex::Unlock()
+        activate MUT
+            MUT->>TM: TaskManager::MutexWake()
+            activate TM
+                TM->>H: Task_H->SetNextState(EVENT_UNBLOCK)
+                activate H
+                    H->>H: Task::blockedUnblock()
+                    activate H
+                    H->>TM: TaskManager::PushToReadyById(Task_H)
+                        activate TM
+                            TM->>PQ: PriorityQueue::Push(Task_H)
+                            activate PQ
+                            deactivate PQ
+                        deactivate TM
+                    deactivate H
+                deactivate H
+            deactivate TM
+            MUT-->>L: Unlock 성공
+        deactivate MUT
+    deactivate L
+
+
+    %% 6. 스케줄러가 다시 H를 선택해서 실행 (뮤텍스도 넘겨받음)
+    

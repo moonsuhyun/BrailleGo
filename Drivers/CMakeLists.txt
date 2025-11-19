@@ -2,7 +2,7 @@
 add_library(hal_conf INTERFACE)
 target_include_directories(hal_conf
         INTERFACE
-            ${CMAKE_SOURCE_DIR}/BSP/${TARGET_BOARD}/HalConf
+            ${CMAKE_SOURCE_DIR}/RTOS/BSP/${TARGET_BOARD}/HalConf
 )
 
 add_library(cmsis INTERFACE)

@@ -6,6 +6,8 @@
  */
 
 #include "PortTask.h"
+
+#include "cmsis_gcc.h"
 #include "types.h"
 #include "TaskManager.h"
 
@@ -17,8 +19,15 @@ void Port_Task_Create(TaskStackFrame_t* task_frame, uint32_t wrapper, uint32_t t
     task_frame->exc_frame.r0_r3[1] = (uint32_t) arg;
 }
 
-void Port_Task_Start(void) {
-	asm volatile ("SVC 0");
+// void Port_Task_Start(void) {
+// 	asm volatile ("SVC 0");
+// }
+
+__attribute((noreturn))
+inline void Port_Task_Start(void)
+{
+    __asm volatile ("SVC 0");
+    __builtin_unreachable();
 }
 
 

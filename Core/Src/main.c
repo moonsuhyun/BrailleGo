@@ -31,34 +31,25 @@ static void sTask_Init();
   */
 int main(void)
 {
-    sKernel_Init();
+    Kernel_Start(sTask_Init);
 
     while (1)
     {
     }
 }
 
-static void sKernel_Init(void)
-{
-    Kernel_Init();
-
-    printf("Kernel has initiated...\r\n");
-
-    sTask_Init();
-
-    Kernel_Start();
-}
-
 static void sTask_Init(void)
 {
-    Kernel_Create(TaskA, NULL);
-    Kernel_Create(TaskB, NULL);
-    int32_t arg = 10;
-    Kernel_Create(Task_Stack_Test, (void*) arg);
-    //	Kernel_Create(TaskC);
-    //	Kernel_Create(TaskD);
-    //	Kernel_Create(TaskE);
-    //	Kernel_Create(TaskF);
-    //	Kernel_Create(TaskG);
-    //	Kernel_Create(TaskH);
+    int task_id;
+    task_id = Task_Create(Task_L, NULL, 2);
+    task_id = Task_Create(Task_M, NULL, 1);
+    task_id = Task_Create(Task_H, NULL, 0);
+
+    // Task_Create(TaskA, NULL, 0);
+    // Task_Create(TaskB, NULL, 0);
+
+    while (1)
+    {
+        Task_Yield();
+    }
 }

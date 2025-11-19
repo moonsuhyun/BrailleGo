@@ -15,13 +15,20 @@ extern "C" {
 #endif
 
 typedef struct Task Task;
+typedef void (*KernelTaskFunc_t)(void*);
 
-// void Kernel_Task_Wrapper(void (*task_func)(void*), void* arg);
-const Task* Kernel_Task_Get_Current_Task(void);
-int32_t Kernel_Task_Get_Current_Task_Id(void);
-void Kernel_Task_SysTick_Callback(void);
-void Kernel_Task_Scheduler(void);
+void TaskManager_Init(KernelTaskFunc_t init_task);
+int32_t TaskManager_Create(KernelTaskFunc_t start_func, void* arg, uint32_t priority);
+int32_t TaskManager_Yield();
+int32_t TaskManager_Delay(uint32_t ms);
+int32_t TaskManager_Terminate();
+
+Task* TaskManager_Get_Current_Task(void);
+int32_t TaskManager_Get_Current_Task_Id(void);
+void TaskManager_SysTick_Callback(void);
+void TaskManager_Scheduler(void);
 uint32_t Kernel_Task_Get_Wake_Time_By_Id(uint32_t id);
+int32_t Kernel_Task_Terminate(void);
 
 #ifdef __cplusplus
 }

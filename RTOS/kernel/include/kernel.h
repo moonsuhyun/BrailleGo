@@ -8,14 +8,51 @@
 extern "C" {
 #endif
 
-void Kernel_Init(void);
-void Kernel_Start(void);
-uint32_t Kernel_Create(void (*start_func)(void*), void* arg);
-void Kernel_Yield(void);
-void Kernel_Delay(uint32_t ms);
-void Kernel_Terminate();
+enum
+{
+    SCG_KERNEL   = 0x0000U,
+    SCG_TASK     = 0x0100U,
+    SCG_SYSTICK  = 0x0200U,
+    SCG_SYNC     = 0x0300U
+};
 
-uint32_t Kernel_Get_SysTick(void);
+typedef enum SysCallNo
+{
+    SC_INIT      = SCG_KERNEL  | 0x0001U,
+    SC_START     = SCG_KERNEL  | 0x0002U,
+    SC_ISRUN     = SCG_KERNEL  | 0x0003U,
+
+    SC_CREATE    = SCG_TASK    | 0x0001U,
+    SC_YIELD     = SCG_TASK    | 0x0002U,
+    SC_DELAY     = SCG_TASK    | 0x0003U,
+    SC_TERMINATE = SCG_TASK    | 0x0004U,
+
+    SC_GETTICK   = SCG_SYSTICK | 0x0001U,
+
+    SC_MUTLOCK   = SCG_SYNC    | 0x0001U,
+    SC_MUTUNLOCK = SCG_SYNC    | 0x0002U
+
+} SysCallNo_t;
+
+typedef enum MutexType
+{
+    MUTEX_UART,
+    MUTEX_TYPE_NUM
+} MutexType_t;
+
+typedef void (*KernelTaskFunc_t)(void*);
+
+// void Kernel_Init(KernelTaskFunc_t init_task);
+void Kernel_Start(KernelTaskFunc_t init_task);
+uint32_t Task_Create(void (*start_func)(void*), void* arg, uint32_t priority);
+void Task_Yield(void);
+void Task_Delay(uint32_t ms);
+void Task_Terminate();
+
+bool Mutex_Lock(MutexType_t mutex_type);
+bool Mutex_Unlock(MutexType_t mutex_type);
+
+uint32_t SysTick_GetTick(void);
 bool Kernel_Is_Running(void);
 
 #ifdef __cplusplus

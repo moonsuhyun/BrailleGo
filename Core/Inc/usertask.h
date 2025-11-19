@@ -26,4 +26,8 @@ void TaskH(void);
 
 void Task_Stack_Test(void* arg);
 
+void Task_L(void* arg);
+void Task_M(void* arg);
+void Task_H(void* arg);
+
 #endif /* INC_USERTASK_H_ */

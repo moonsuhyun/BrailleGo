@@ -1,0 +1,35 @@
+sequenceDiagram
+    autonumber
+    participant RST as Reset_Handler<br>(부트 코드)
+    participant K   as Kernel
+    participant HW  as CPU/하드웨어
+    participant TM  as TaskManager<br>(스케줄러)
+    participant T  as Task<br>(TCB)
+    participant ISR as ISR
+    participant T1  as 첫 번째 태스크<br>(Thread mode)
+
+    %% 1. 부팅 & 커널/하드웨어 초기화
+    RST->>K: main() 진입<br>Kernel_Init()
+    K->>HW: HW 초기화
+    K->>TM: TaskManager::Init()<br>커널 자료구조 초기화 (Queue, TCB 등)
+    loop For All TCB
+        TM->>T: Task::Init()<br>태스크 스택 할당
+        T-->>TM: TCB 포인터 반환
+    end
+
+    %% 2. 첫 태스크 생성 & 초기 컨텍스트 준비
+    TM->>TM: Task_Create()<br>init 태스크 생성
+
+    %% 3. SVC를 통해 첫 태스크 컨텍스트로 진입
+    K->>HW: SVC Call
+    HW-->>ISR: SVC 예외 진입<br>(SVC_Handler 호출)
+
+    ISR->>TM: current_tcb=TaskManager_Get_Current_Task()
+    TM-->>ISR: 현재 태스크 TCB 포인터 반환
+    ISR->>ISR: PSP = current_tcb->sp
+    ISR->>ISR: 스택에서 R4~R11 복구<br>(LDMIA PSP!, {r4-r11})
+    ISR-->>HW: EXC_RETURN으로 예외 복귀<br>(BX LR)
+
+    %% 4. 하드웨어가 나머지 컨텍스트 복구 & 태스크 진입
+    HW-->>T1: PSP에서 R0~R3,R12,LR,PC,xPSR 자동 POP<br>Thread mode + PSP 전환
+    

@@ -37,12 +37,15 @@ void Task::SetNextState(KernelTaskEvent_t event) {
 			{TASK_RUNNING,   	 EVENT_YIELD,     &Task::runningYield,     TASK_READY},
 			{TASK_RUNNING,    	 EVENT_DELAY,     &Task::runningDelay,     TASK_BLOCKED_DELAY},
 			{TASK_RUNNING,   	 EVENT_SUSPEND,   &Task::runningSuspend,   TASK_SUSPENDED},
+			{TASK_RUNNING,   	 EVENT_MUTEX,   &Task::runningMutex,   TASK_BLOCKED_MUTEX},
+			{TASK_BLOCKED_MUTEX, EVENT_UNBLOCK,   &Task::blockedUnblock,   TASK_READY},
 			{TASK_BLOCKED_DELAY, EVENT_UNBLOCK,   &Task::blockedUnblock,   TASK_READY},
 			{TASK_SUSPENDED, 	 EVENT_RESUME,    &Task::suspendResume,    TASK_READY},
 			{TASK_RUNNING,		 EVENT_TERMINATE, &Task::runningTerminate, TASK_TERMINATED},
 			{TASK_TERMINATED,    EVENT_CREATE,    &Task::terminatedCreate, TASK_READY},
-			{TASK_IDLE_READY, EVENT_SCHEDULE, &Task::idleSchedule, TASK_IDLE_RUNNING},
-			{TASK_IDLE_RUNNING, EVENT_YIELD, &Task::idleYield, TASK_IDLE_READY},
+			{TASK_TERMINATED,    EVENT_INIT,    &Task::initSchedule, TASK_INIT_RUNNING},
+			{TASK_INIT_READY, EVENT_SCHEDULE, &Task::initSchedule, TASK_INIT_RUNNING},
+			{TASK_INIT_RUNNING, EVENT_YIELD, &Task::initYield, TASK_INIT_READY},
 	};
 	for (uint32_t i = 0; i < sizeof(table)/sizeof(table[0]); i++) {
 		if (m_state == table[i].current_state && event == table[i].event) {
@@ -59,7 +62,7 @@ void Task::SetDelayTime(uint32_t ms) {
 	m_wake_time = BSP_Get_Tick() + ms;
 }
 
-uint32_t Task::GetWakeTime(void)
+uint32_t Task::GetWakeTime(void) const
 {
 	return m_wake_time;
 }
@@ -67,12 +70,14 @@ uint32_t Task::GetWakeTime(void)
 void Task::readySchedule(void) {
 	TaskManager& task_manager = TaskManager::sGetInstance();
 	m_time_slice = TIME_SLICE_QUANTUM;
-	Kernel_TaskQ_Dequeue(TASK_READY, nullptr);
+	// Kernel_TaskQ_Dequeue(TASK_READY, nullptr);
 	task_manager.SetRunningTaskID(m_id);
 }
 
 void Task::runningYield(void) {
-	Kernel_TaskQ_Enqueue(TASK_READY, m_id);
+	// Kernel_TaskQ_Enqueue(TASK_READY, m_id);
+	TaskManager& task_manager = TaskManager::sGetInstance();
+	task_manager.PushToReadyById(m_id);
 	Port_Core_Trigger_PendSV();
 }
 
@@ -82,7 +87,9 @@ void Task::runningDelay(void) {
 }
 
 void Task::blockedUnblock(void) {
-	Kernel_TaskQ_Enqueue(TASK_READY, m_id);
+	// Kernel_TaskQ_Enqueue(TASK_READY, m_id);
+	TaskManager& task_manager = TaskManager::sGetInstance();
+	task_manager.PushToReadyById(m_id);
 }
 
 void Task::runningSuspend(void) {
@@ -100,20 +107,27 @@ void Task::runningTerminate(void) {
 
 void Task::terminatedCreate(void) {
 	TaskManager& task_manager = TaskManager::sGetInstance();
-	Kernel_TaskQ_Enqueue(TASK_READY, m_id);
+	m_time_slice = TIME_SLICE_QUANTUM;
+	task_manager.PushToReadyById(m_id);
 }
 
-void Task::idleSchedule()
+void Task::initSchedule()
 {
 	TaskManager::sGetInstance().SetRunningTaskID(m_id);
 }
 
-void Task::idleYield()
+void Task::initYield()
 {
 	Port_Core_Trigger_PendSV();
 }
 
-bool Task::IsDelayTimeOver(void) {
+void Task::runningMutex()
+{
+	Port_Core_Trigger_PendSV();
+}
+
+bool Task::IsDelayTimeOver(void) const
+{
 	if (m_wake_time < BSP_Get_Tick()) return true;
 	return false;
 }
@@ -121,177 +135,57 @@ bool Task::IsDelayTimeOver(void) {
 void Task::InitIdleTask(uint32_t wrapper, uint32_t pc) {
 	TaskStackFrame_t* task_frame = (TaskStackFrame_t*)m_stack_pointer;
 	Port_Task_Create(task_frame, wrapper, pc, NULL);
-	m_state = TASK_IDLE_READY;
+	m_state = TASK_INIT_READY;
 }
-//static KernelTcb_t sTask_list[MAX_TASK_NUM];
-//static uint32_t sAllocated_tcb_count;
-//static uint32_t sIdle_task_id;
-//
-//static uint32_t sCurrent_task_id;
-//static uint32_t sScheduler_Round_Robin_Algorithm(void);
-//
-//static void sEvent_Yield(uint32_t task_id);
-//static void sEvent_Schedule(uint32_t task_id);
-//static void sEvent_Delay(uint32_t task_id);
-//static void sEvent_Unblock(uint32_t task_id);
-//static void sEvent_Terminate(uint32_t task_id);
-//static void sEvent_Create(uint32_t task_id);
-//
-//static void sIdle_Task(void);
-//
-////KernelTcb_t* gCurrent_tcb; Global 변수 사용 최소화
-//
-//// 태스크 생성, 관리 등
-//
-//void Kernel_Task_Init(void) {
-//    sAllocated_tcb_count = 0;
-//    sCurrent_task_id = 0;
-//
-//    Kernel_TaskQ_Init();
-//
-//    for(uint32_t i = 0; i < MAX_TASK_NUM; i++) {
-//    	sTask_list[i].sp = (uint32_t*)(TASK_STACK_TOP - i * TASK_STACK_SIZE);
-//        sTask_list[i].stack_base = (uint8_t*)(TASK_STACK_TOP - (i + 1) * TASK_STACK_SIZE);
-//        sTask_list[i].sp -= sizeof(TaskStackFrame_t) / 4;
-//        memset(sTask_list[i].stack_base, 0, TASK_STACK_SIZE);
-//        sTask_list[i].wake_time = 0;
-//        sTask_list[i].state = TASK_TERMINATED;
-//    }
-//    sIdle_task_id = Kernel_Task_Create(sIdle_Task);
-//}
-//
-//void Kernel_Task_Start(void) {
-//	Kernel_StateM_Transaction(sIdle_task_id, EVENT_SCHEDULE);
-//    Port_Task_Start();
-//}
-//
-//uint32_t Kernel_Task_Create(KernelTaskFunc_t start_func) {
-//	uint32_t task_id = sAllocated_tcb_count++;
-//
-//    if(sAllocated_tcb_count > MAX_TASK_NUM) return NOT_ENOUGH_TASK_NUM;
-//
-//    KernelTcb_t* new_tcb = &sTask_list[task_id];
-//
-//    TaskStackFrame_t* task_frame = (TaskStackFrame_t*) new_tcb->sp;
-//    uint32_t pc = (uint32_t)start_func;
-//    Port_Task_Create(task_frame, pc);
-//
-////    new_tcb->state = TASK_READY;
-////    if (task_id != sIdle_task_id) {
-////    	Kernel_TaskQ_Enqueue(TASK_READY, task_id);
-////    }
-//    sEvent_Create(task_id);
-//
-//    return task_id;
-//}
-//
-//void Kernel_Task_Yield(uint32_t task_id) {
-//	sEvent_Yield(task_id);
-//}
-//
-//void Kernel_Task_Delay(uint32_t task_id, uint32_t ms) {
-//	uint32_t start_tick = BSP_Get_Tick();
-//	sTask_list[task_id].wake_time = start_tick + ms;
-//	sEvent_Delay(task_id);
-//}
-//
-//void Kernel_Task_Terminate(uint32_t task_id) {
-//	sEvent_Terminate(task_id);
-//}
-//
-//// Context switching 시 PendSV에서 호출
-//void Kernel_Task_Scheduler(void) {
-//	uint32_t task_id;
-//	if (Kernel_TaskQ_Is_Empty(TASK_READY)) {
-//		task_id = sIdle_task_id;
-//		printf("[Tick %u] Idle task(id=%u) scheduled\r\n", BSP_Get_Tick(), task_id);
-//	} else {
-//		task_id = sScheduler_Round_Robin_Algorithm();
-//	}
-//    sEvent_Schedule(task_id);
-//}
-//
-//// getter, setter
-//uint32_t Kernel_Task_Get_Idle_Task_Id(void) {
-//	return sIdle_task_id;
-//}
-//uint32_t Kernel_Task_Get_Current_Task_Id(void) {
-//    return sCurrent_task_id;
-//}
-//
-//void Kernel_Task_Set_Current_Task_Id(uint32_t task_id) {
-//	sCurrent_task_id = task_id;
-//}
-//
-//uint32_t Kernel_Task_Get_State(uint32_t task_id) {
-//	return sTask_list[task_id].state;
-//}
-//
-//void Kernel_Task_Set_State(uint32_t task_id, KernelTaskState_t state) {
-//	sTask_list[task_id].state = state;
-//}
-//
-//KernelTcb_t* Kernel_Task_Get_Current_Tcb(void) {
-//	return &sTask_list[sCurrent_task_id];
-//}
-//
-//void Kernel_Task_SysTick_Callback(void) {
-//	if (!Kernel_TaskQ_Is_Empty(TASK_BLOCKED_DELAY)) {
-//		TaskQIterator_t iter;
-//		uint32_t task_id;
-//		if (Kernel_TaskQ_Iterator_Init(&iter, TASK_BLOCKED_DELAY, &task_id)){
-//			while (Kernel_TaskQ_Iterator_Get(&iter)) {
-//				if (sTask_list[task_id].wake_time <= BSP_Get_Tick()) {
-//					Kernel_TaskQ_Remove(TASK_BLOCKED_DELAY, task_id);
-//					sEvent_Unblock(task_id);
-//				}
-//			}
-//		}
-//	}
-//}
-//
-//
-//// static functions
-//
-//uint32_t sScheduler_Round_Robin_Algorithm(void) {
-//	uint32_t task_id;
-//	Kernel_TaskQ_Dequeue(TASK_READY, &task_id);
-//	return task_id;
-//}
-//
-//// task event 관련
-//
-//void sEvent_Yield(uint32_t task_id) {
-//	Kernel_StateM_Transaction(task_id, EVENT_YIELD);
-//}
-//
-//void sEvent_Schedule(uint32_t task_id) {
-//	Kernel_StateM_Transaction(task_id, EVENT_SCHEDULE);
-//}
-//
-//void sEvent_Delay(uint32_t task_id) {
-//	Kernel_StateM_Transaction(task_id, EVENT_DELAY);
-//}
-//
-//void sEvent_Unblock(uint32_t task_id) {
-//	Kernel_StateM_Transaction(task_id, EVENT_UNBLOCK);
-//}
-//
-//void sEvent_Terminate(uint32_t task_id) {
-//	Kernel_StateM_Transaction(task_id, EVENT_TERMINATE);
-//}
-//
-//void sEvent_Create(uint32_t task_id) {
-//	Kernel_StateM_Transaction(task_id, EVENT_CREATE);
-//}
-//
-//
-//void sIdle_Task(void) {
-//	Kernel_Task_Yield(sIdle_task_id);
-//	while (1) {
-//		if (!Kernel_TaskQ_Is_Empty(TASK_READY)) Kernel_Task_Yield(sIdle_task_id);
-//		Port_Core_Wait_For_Interrupt();
-//	}
-//}
 
+uint32_t Task::GetId() const
+{
+	return m_id;
+}
 
+uint32_t Task::GetPriority() const
+{
+	return m_priority;
+}
+
+Task* Task::GetNextTask() const
+{
+	return m_next_task;
+}
+
+void Task::SetNextTask(Task* task)
+{
+	m_next_task = task;
+}
+
+void Task::SetPriority(uint32_t priority)
+{
+	m_priority = priority;
+	m_base_priority = priority;
+}
+
+void Task::InheritProirity(uint32_t to)
+{
+	m_priority = to;
+}
+
+void Task::RestorePriority(void)
+{
+	m_priority = m_base_priority;
+}
+
+KernelTaskState_t Task::GetState() const
+{
+	return m_state;
+}
+
+void Task::DecreaseTimeSlice()
+{
+	if (this->m_state == TASK_RUNNING)
+	{
+		if (m_time_slice-- < 0)
+		{
+			this->SetNextState(EVENT_YIELD);
+		}
+	}
+}

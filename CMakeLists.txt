@@ -59,6 +59,6 @@ endif ()
 add_definitions(-DDEBUG -DUSE_HAL_DRIVER -DSTM32F103xB)
 
 add_subdirectory(Drivers)
-add_subdirectory(BSP)
+#add_subdirectory(BSP)
 add_subdirectory(RTOS)
 add_subdirectory(Core)

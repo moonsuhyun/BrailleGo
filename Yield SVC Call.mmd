@@ -1,0 +1,71 @@
+sequenceDiagram
+    autonumber
+    participant T1  as 태스크 A<br>(Thread mode)
+    participant K   as Kernel<br>(유저 API)
+    participant HW  as CPU/하드웨어
+    participant ISR as ISR
+    participant PQ  as PriorityQueue<br>(자료구조 객체)
+    participant TM  as TaskManager<br>(스케줄러)
+    participant T   as Task<br>(태스크 상태 머신)
+    participant T2  as 태스크 B<br>(Thread mode)
+
+    %% 1. 유저 태스크에서 yield 호출
+    T1->>K: Task_Yield()
+
+    %% 2. 시스템 콜(SVC) 진입
+    K-->>HW: SVC Call
+    HW->>ISR: SVC_Handler<br>(Handler mode, MSP 사용)
+
+    %% 3. SVC 핸들러에서 syscall 처리
+    activate ISR
+        ISR->>TM: TaskManager::TaskYield()
+        activate TM
+            TM->>T: current_task->SetNextState(EVENT_YIELD)<br>Task State Machine 호출
+            activate T
+                T->>T: Task::runningYield()<br>태스크 상태 전이
+                activate T
+                    T-->>HW: __disable_irq()
+                    T->>TM: TaskManager::PushToReadyById()
+                    activate TM
+                        TM->>PQ: PrirorityQueue::Push(&TCB)
+                        activate PQ
+                        deactivate PQ
+                    deactivate TM
+                    T-->>HW: PendSV Set Pending<br>(컨택스트 스위치 요청)
+                    T-->>HW: __enable_irq()
+                deactivate T
+            deactivate T
+        deactivate TM
+    deactivate ISR
+
+    %% 4. PendSV에서 실제 컨텍스트 스위치
+    HW->>ISR: PendSV_Handler
+    activate ISR
+        ISR-->>HW: 태스크 A 컨텍스트 저장<br>(PSP에 R4~R11 푸시)
+        ISR->>TM: TaskManager::Scheduler()
+        activate TM
+            TM->>PQ: next_task=PriorityQueue::Pop()
+            activate PQ
+                PQ-->>TM: 태스크 B TCB 반환
+            deactivate PQ
+            TM->>T: next_task->SetNextState(EVENT_SCHEDULE)<br>Task State Machine 호출
+            activate T
+                T->>T: Task::readySchedule()<br>태스크 상태 전이
+                activate T
+                    T-->>HW: __disable_irq()
+                    T->>T: Time Slice 재설정
+                    T->>TM: TaskManager::SetRunningTaskId()
+                    activate TM
+                    deactivate TM
+                    T-->>HW: __enable_irq()
+                deactivate T
+            deactivate T
+            TM-->>ISR: 태스크 B TCB 반환
+        deactivate TM
+        ISR-->>HW: 태스크 B 컨택스트 복구
+        ISR-->>HW: 예외 복귀(bx lr)
+    deactivate ISR
+
+    %% 5. 새로운 태스크로 실행 재개
+    HW-->>T2: Thread mode + PSP로 복귀
+    

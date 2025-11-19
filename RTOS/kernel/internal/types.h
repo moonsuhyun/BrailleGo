@@ -19,16 +19,18 @@
 // #define MAX_TASK_NUM 3
 #define TIME_SLICE_QUANTUM 10
 #define STACK_CANARY_VALUE 0xDEADBEEF
-#define IDLE_TASK_ID 0
+#define INIT_TASK_ID 0
+#define MAX_PRIORITY_NUM 32
 
 typedef enum KernelTaskState {
 	TASK_READY,
 	TASK_RUNNING,
 	TASK_BLOCKED_DELAY,
+	TASK_BLOCKED_MUTEX,
 	TASK_SUSPENDED,
 	TASK_TERMINATED,
-	TASK_IDLE_RUNNING,
-	TASK_IDLE_READY,
+	TASK_INIT_RUNNING,
+	TASK_INIT_READY,
 	TASK_STATE_NUM
 } KernelTaskState_t;
 
@@ -36,7 +38,7 @@ typedef enum KernelTaskState {
 typedef struct KernelTcb {
     uint32_t* sp;
     uint8_t* stack_base;
-	uint32_t time_slice;
+	int32_t  time_slice;
     uint32_t wake_time;
     KernelTaskState_t state;
 	uint32_t id;
@@ -45,12 +47,14 @@ typedef struct KernelTcb {
 typedef enum KernelTaskEvent {
 	EVENT_YIELD,
 	EVENT_DELAY,
+	EVENT_MUTEX,
 	EVENT_UNBLOCK,
 	EVENT_SCHEDULE,
 	EVENT_SUSPEND,
 	EVENT_RESUME,
 	EVENT_TERMINATE,
 	EVENT_CREATE,
+	EVENT_INIT,
 	EVENT_NUM
 } KernelTaskEvent_t;
 
@@ -69,5 +73,11 @@ typedef struct TaskQIterator {
 	bool is_initialized;
 	uint32_t snapshot[MAX_TASK_NUM];
 } TaskQIterator_t;
+
+// typedef enum MutexType
+// {
+// 	MUTEX_UART,
+// 	MUTEX_TYPE_NUM
+// } MutexType_t;
 
 #endif /* KERNEL_TYPES_H_ */

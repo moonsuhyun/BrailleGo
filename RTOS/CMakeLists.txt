@@ -1,11 +1,15 @@
 file(GLOB RTOS_SOURCES
         "kernel/src/*.c"
         "kernel/src/*.cpp"
+#        "kernel/uapi/*.c"
         "lib/*.c"
 )
 
 file(GLOB PORT_SOURCES "port/${TARGET_PROCESSOR}/*.c")
+file(GLOB BSP_SOURCES "BSP/${TARGET_BOARD}/*.c")
 list(APPEND RTOS_SOURCES ${PORT_SOURCES})
+list(APPEND RTOS_SOURCES ${BSP_SOURCES})
+
 #add_library(rtos_handler OBJECT port/${TARGET_PROCESSOR}/PortHandler.c)
 
 add_library(rtos OBJECT ${RTOS_SOURCES})
@@ -18,9 +22,11 @@ target_include_directories(rtos
             ${CMAKE_CURRENT_SOURCE_DIR}/kernel/internal
             ${CMAKE_CURRENT_SOURCE_DIR}/port
             ${CMAKE_CURRENT_SOURCE_DIR}/port/${TARGET_PROCESSOR}
+            ${CMAKE_CURRENT_SOURCE_DIR}/BSP
+            ${CMAKE_CURRENT_SOURCE_DIR}/BSP/${TARGET_BOARD}/Inc
 )
 
-target_link_libraries(rtos PUBLIC cmsis bsp)
+target_link_libraries(rtos PUBLIC cmsis stm32hal)
 
 #target_include_directories(rtos_handler
 #        PUBLIC
