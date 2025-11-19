@@ -344,13 +344,13 @@ __attribute((naked)) void PendSV_Handler(void)
   */
 void SysTick_Handler(void)
 {
-    // __disable_irq();
+    __disable_irq();
     if (Kernel_Is_Running())
     {
         HAL_IncTick();
         TaskManager_SysTick_Callback();
     }
-    // __enable_irq();
+    __enable_irq();
 
 }
 
