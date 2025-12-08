@@ -57,7 +57,7 @@ public:
 	KernelTaskState_t GetState(void) const;
 	void SetNextTask(Task* task);
 	void SetPriority(uint32_t priority);
-	void InheritProirity(uint32_t to);
+	void InheritPriority(uint32_t to);
 	void RestorePriority(void);
 	void DecreaseTimeSlice();
 	// void PendSignal(int32_t sig);

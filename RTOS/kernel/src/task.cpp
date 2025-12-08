@@ -164,7 +164,7 @@ void Task::SetPriority(uint32_t priority)
 	m_base_priority = priority;
 }
 
-void Task::InheritProirity(uint32_t to)
+void Task::InheritPriority(uint32_t to)
 {
 	m_priority = to;
 }

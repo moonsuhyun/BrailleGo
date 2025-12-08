@@ -116,7 +116,11 @@ void TaskManager::Scheduler(void) {
 	if (!next_task)
 	{
 		next_task = &m_task_list.at(INIT_TASK_ID);
-		printf("[Tick %u] Init task scheduled\r\n", BSP_Get_Tick());
+		uint32_t tick = BSP_Get_Tick();
+		if (tick % 1000 == 0)
+		{
+			printf("[Tick %u] Init task scheduled\r\n", BSP_Get_Tick());
+		}
 	}
 
    next_task->SetNextState(EVENT_SCHEDULE);
@@ -133,7 +137,7 @@ void TaskManager::MutexWait(uint32_t owner_id)
 		{
 			m_ready_queue.Push(&m_task_list.at(owner_id), current_priority);
 		}
-		m_task_list.at(owner_id).InheritProirity(current_priority);
+		m_task_list.at(owner_id).InheritPriority(current_priority);
 	}
 	m_task_list.at(m_running_task_id).SetNextState(EVENT_MUTEX);
 }
