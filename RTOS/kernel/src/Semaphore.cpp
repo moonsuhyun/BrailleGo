@@ -44,7 +44,7 @@ void Semaphore::Wait(SemHandle h)
         return;
     }
 
-    TaskManager task_manager = TaskManager::sGetInstance();
+    TaskManager& task_manager = TaskManager::sGetInstance();
     Task* current_task = task_manager.GetRunningTask();
 
     sem->m_waiting_count++;
