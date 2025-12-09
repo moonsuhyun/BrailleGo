@@ -6,9 +6,11 @@
 
 #include "BspHwInit.h"
 #include "BspSysTick.h"
+#include "BspUart.h"
 #include "PortCore.h"
 #include "PortTask.h"
 #include "TaskManager.h"
+#include <stdio.h>
 
 static bool is_initiated = false;
 
@@ -56,14 +58,34 @@ void Task_Terminate()
     Port_Core_SVC_Call(SC_TERMINATE, NULL, NULL, NULL);
 }
 
-bool Mutex_Lock(MutexType_t mutex_type)
+void Mutex_Lock(MutexType_t mutex_type)
 {
     Port_Core_SVC_Call(SC_MUTLOCK, (void*)mutex_type, NULL, NULL);
 }
 
-bool Mutex_Unlock(MutexType_t mutex_type)
+void Mutex_Unlock(MutexType_t mutex_type)
 {
     Port_Core_SVC_Call(SC_MUTUNLOCK, (void*)mutex_type, NULL, NULL);
+}
+
+SemHandle_t Semaphore_Create(int32_t initial_count)
+{
+    return Port_Core_SVC_Call(SC_SEMCREATE, (void*)initial_count, NULL, NULL);
+}
+
+void Semaphore_Wait(SemHandle_t h)
+{
+    Port_Core_SVC_Call(SC_SEMWAIT, (void*)h, NULL, NULL);
+}
+
+void Semaphore_Signal(SemHandle_t h)
+{
+    Port_Core_SVC_Call(SC_SEMSIGNAL, (void*)h, NULL, NULL);
+}
+
+int32_t Semaphore_GetCount(SemHandle_t h)
+{
+    return Port_Core_SVC_Call(SC_SEMGETCNT, (void*)h, NULL, NULL);
 }
 
 uint32_t SysTick_GetTick(void)
@@ -74,4 +96,59 @@ uint32_t SysTick_GetTick(void)
 bool Kernel_Is_Running(void)
 {
     return is_initiated;
+}
+
+int32_t UART_Read(uint8_t* buf, uint32_t len)
+{
+    uint8_t ch;
+    for (size_t i = 0; i < len; ++i) {
+        if (BSP_UART_GetCharBlocking(&ch) < 0) {
+            return -1;
+        }
+        buf[i] = ch;
+    }
+    return 0;
+}
+
+int32_t UART_ReadLine(char* buf, uint32_t max_len)
+{
+    size_t pos = 0;
+    uint8_t ch;
+
+    if (max_len == 0) return -1;
+
+    for (;;) {
+        if (BSP_UART_GetCharBlocking(&ch) < 0) {
+            continue;
+        }
+
+        // echo
+        if (ch == '\r' || ch == '\n') {
+            // CR/LF
+            Mutex_Lock(MUTEX_UART);
+            printf("\r\n");
+            Mutex_Unlock(MUTEX_UART);
+            break;
+        } else if (ch == '\b' || ch == 0x7F) {
+            // backspace
+            if (pos > 0) {
+                pos--;
+                Mutex_Lock(MUTEX_UART);
+                printf("\b \b");
+                Mutex_Unlock(MUTEX_UART);
+            }
+        } else {
+            if (pos < max_len - 1) {
+                buf[pos++] = (char)ch;
+                Mutex_Lock(MUTEX_UART);
+                printf("%c", ch);   // echo
+                Mutex_Unlock(MUTEX_UART);
+            } else {
+                // buffer full
+            }
+        }
+    }
+
+    buf[pos] = '\0';
+    return (int)pos;
 }

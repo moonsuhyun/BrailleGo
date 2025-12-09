@@ -2,13 +2,13 @@
 // Created by ��������� on 25. 9. 19..
 //
 
-#ifndef BRAILLEGO_SYNCOBJS_HPP
-#define BRAILLEGO_SYNCOBJS_HPP
+#ifndef KERNEL_INTERNAL_MUTEX_HPP_
+#define KERNEL_INTERNAL_MUTEX_HPP_
 
 #include <array>
 
-#include "types.h"
 #include "Kernel.h"
+#include "PriorityQueue.hpp"
 
 class Mutex
 {
@@ -16,7 +16,7 @@ private:
         bool m_locked{false};
         uint32_t m_owner{0};
         uint32_t m_waiting_count{0};
-        std::array<uint32_t, MAX_TASK_NUM> m_waiting_list{};
+        PriorityQueue m_waiting_list{};
         static std::array<Mutex, MUTEX_TYPE_NUM> m_mutexes;
 public:
         uint32_t Lock();
@@ -25,4 +25,4 @@ public:
         static uint32_t MutexUnlock(MutexType_t mutex_type);
 };
 
-#endif //BRAILLEGO_SYNCOBJS_HPP
+#endif // KERNEL_INTERNAL_MUTEX_HPP_

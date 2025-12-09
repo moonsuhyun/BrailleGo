@@ -33,19 +33,18 @@ void Task::SetProgramCounter(uint32_t wrapper, uint32_t pc, void* arg) {
 void Task::SetNextState(KernelTaskEvent_t event) {
 	KernelEventActionTable_t table[] = {
 	//		|CUR_STATE----------|EVENT-----------|ACTION------------------|NEXT_STATE---------|
-			{TASK_READY,     	 EVENT_SCHEDULE,  &Task::readySchedule,    TASK_RUNNING},
-			{TASK_RUNNING,   	 EVENT_YIELD,     &Task::runningYield,     TASK_READY},
-			{TASK_RUNNING,    	 EVENT_DELAY,     &Task::runningDelay,     TASK_BLOCKED_DELAY},
-			{TASK_RUNNING,   	 EVENT_SUSPEND,   &Task::runningSuspend,   TASK_SUSPENDED},
-			{TASK_RUNNING,   	 EVENT_MUTEX,   &Task::runningMutex,   TASK_BLOCKED_MUTEX},
-			{TASK_BLOCKED_MUTEX, EVENT_UNBLOCK,   &Task::blockedUnblock,   TASK_READY},
-			{TASK_BLOCKED_DELAY, EVENT_UNBLOCK,   &Task::blockedUnblock,   TASK_READY},
-			{TASK_SUSPENDED, 	 EVENT_RESUME,    &Task::suspendResume,    TASK_READY},
-			{TASK_RUNNING,		 EVENT_TERMINATE, &Task::runningTerminate, TASK_TERMINATED},
-			{TASK_TERMINATED,    EVENT_CREATE,    &Task::terminatedCreate, TASK_READY},
-			{TASK_TERMINATED,    EVENT_INIT,    &Task::initSchedule, TASK_INIT_RUNNING},
-			{TASK_INIT_READY, EVENT_SCHEDULE, &Task::initSchedule, TASK_INIT_RUNNING},
-			{TASK_INIT_RUNNING, EVENT_YIELD, &Task::initYield, TASK_INIT_READY},
+	{TASK_READY, EVENT_SCHEDULE, &Task::readySchedule, TASK_RUNNING},
+	{TASK_RUNNING, EVENT_YIELD, &Task::runningYield, TASK_READY},
+	{TASK_RUNNING, EVENT_DELAY, &Task::runningDelay, TASK_BLOCKED},
+	{TASK_RUNNING, EVENT_SUSPEND, &Task::runningSuspend, TASK_SUSPENDED},
+	{TASK_RUNNING, EVENT_WAIT, &Task::runningWait, TASK_BLOCKED},
+	{TASK_BLOCKED, EVENT_UNBLOCK, &Task::blockedUnblock, TASK_READY},
+	{TASK_SUSPENDED, EVENT_RESUME, &Task::suspendResume, TASK_READY},
+	{TASK_RUNNING, EVENT_TERMINATE, &Task::runningTerminate, TASK_TERMINATED},
+	{TASK_TERMINATED, EVENT_CREATE, &Task::terminatedCreate, TASK_READY},
+	{TASK_TERMINATED, EVENT_INIT, &Task::initSchedule, TASK_INIT_RUNNING},
+	{TASK_INIT_READY, EVENT_SCHEDULE, &Task::initSchedule, TASK_INIT_RUNNING},
+	{TASK_INIT_RUNNING, EVENT_YIELD, &Task::initYield, TASK_INIT_READY},
 	};
 	for (uint32_t i = 0; i < sizeof(table)/sizeof(table[0]); i++) {
 		if (m_state == table[i].current_state && event == table[i].event) {
@@ -82,12 +81,11 @@ void Task::runningYield(void) {
 }
 
 void Task::runningDelay(void) {
-	Kernel_TaskQ_Enqueue_Sorted_By_Wake_Time(TASK_BLOCKED_DELAY, m_id);
+	Kernel_TaskQ_Enqueue_Sorted_By_Wake_Time(TASK_BLOCKED, m_id);
 	Port_Core_Trigger_PendSV();
 }
 
 void Task::blockedUnblock(void) {
-	// Kernel_TaskQ_Enqueue(TASK_READY, m_id);
 	TaskManager& task_manager = TaskManager::sGetInstance();
 	task_manager.PushToReadyById(m_id);
 }
@@ -121,7 +119,7 @@ void Task::initYield()
 	Port_Core_Trigger_PendSV();
 }
 
-void Task::runningMutex()
+void Task::runningWait()
 {
 	Port_Core_Trigger_PendSV();
 }

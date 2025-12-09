@@ -4,101 +4,166 @@
  *  Created on: May 21, 2025
  *      Author: moon
  */
-#include <Kernel.h>
+
+#include "usertask.h"
+
+#include "Kernel.h"
+#include <stdint.h>
 #include <stdio.h>
-#include "devlib.h"
-#include "stdlib.h"
+#include <string.h>
 
-static void Busy(int32_t ms)
-{
-    int32_t start = SysTick_GetTick();
-    while (((int32_t)SysTick_GetTick() - start) < ms) {
-        __asm volatile("nop");
-    }
-}
+#define IMG_W 28
+#define IMG_H 28
+#define IMG_SIZE (IMG_W * IMG_H)
 
-void Task_L(void* arg)
+typedef enum
 {
-    (void) arg;
+    IR_WAIT_M,
+    IR_WAIT_N,
+    IR_WAIT_W,
+    IR_WAIT_H,
+    IR_RECV_DATA,
+    IR_RECV_CHK,
+} ImgRxState_t;
+
+static uint8_t g_img_buf[IMG_SIZE];
+static SemHandle_t g_img_sem = -1;
+
+static int32_t sImgReceiver(void)
+{
+    uint16_t idx = 0;
+    uint8_t checksum = 0;
+    uint8_t byte;
+    ImgRxState_t rx_state = IR_WAIT_M;
+
     for (;;) {
-        // 1) UART 뮤텍스 잡기
-        Mutex_Lock(MUTEX_UART);
-        printf("[L] lock uart at tick=%u\r\n", SysTick_GetTick());
 
-        // 2) 임계구역에서 오래 일하기 (대략 5 * 10ms = 50ms)
-        for (int i = 0; i < 5; ++i) {
-            printf("[L] logging i=%d  tick=%u\r\n", i, SysTick_GetTick());
-            Busy(1000);   // 1sec 바쁜 대기
+        UART_Read(&byte, 1);
+
+        switch (rx_state) {
+
+        case IR_WAIT_M:
+            if (byte == 'M') rx_state = IR_WAIT_N;
+            break;
+
+        case IR_WAIT_N:
+            if (byte == 'N') rx_state = IR_WAIT_W;
+            else rx_state = IR_WAIT_M;
+            break;
+
+        case IR_WAIT_W:
+            if (byte == IMG_W) rx_state = IR_WAIT_H;
+            else
+            {
+                Mutex_Lock(MUTEX_UART);
+                printf("[SH] image width error\r\n");
+                Mutex_Unlock(MUTEX_UART);
+                return -1;
+            }
+            break;
+
+        case IR_WAIT_H:
+            if (byte == IMG_H)
+            {
+                rx_state = IR_RECV_DATA;
+                idx = 0;
+                checksum = 0;
+            } else
+            {
+                Mutex_Lock(MUTEX_UART);
+                printf("[SH] image height error\r\n");
+                Mutex_Unlock(MUTEX_UART);
+                return -1;
+            }
+            break;
+
+        case IR_RECV_DATA:
+            g_img_buf[idx++] = byte;
+            checksum ^= byte;
+            if (idx >= IMG_SIZE) {
+                rx_state = IR_RECV_CHK;
+            }
+            break;
+
+        case IR_RECV_CHK:
+            if (checksum == byte) {
+                Semaphore_Signal(g_img_sem);
+                Mutex_Lock(MUTEX_UART);
+                printf("[SH] image received OK at tick=%u\r\n", SysTick_GetTick());
+                Mutex_Unlock(MUTEX_UART);
+                rx_state = IR_WAIT_M;
+                return 0;
+            }
+            Mutex_Lock(MUTEX_UART);
+            printf("[SH] checksum error\r\n");
+            Mutex_Unlock(MUTEX_UART);
+            return -2;
+            break;
         }
-
-        printf("[L] unlock uart\r\n");
-        Mutex_Unlock(MUTEX_UART);
-
-        // 3) 한참 쉬었다가 다시 반복 (L 주기 크게)
-        Task_Delay(30000);     // 30sec
     }
 }
 
-void Task_M(void* arg)
+void Task_Shell(void* arg)
 {
-    (void)arg;
+    g_img_sem = Semaphore_Create(0);
+
+    char line[64];
+
     for (;;) {
-        // L이 뮤텍스를 잡은 지 조금 지난 시점에 먼저 깨어남
-        printf("[M] delay 1sec tick=%u\r\n", SysTick_GetTick());
-        Task_Delay(1000);  // 1sec마다 깨어남 (H보다 먼저)
+        UART_ReadLine(line, sizeof(line));
 
-        printf("[M] wake, busy work start tick=%u\r\n", SysTick_GetTick());
+        if (strcmp(line, "help") == 0) {
+            Mutex_Lock(MUTEX_UART);
+            printf("[SH] commands: help, recv, stat\r\n");
+            Mutex_Unlock(MUTEX_UART);
+        } else if (strcmp(line, "recv") == 0) {
+            Mutex_Lock(MUTEX_UART);
+            printf("[SH] Ready to receive MNIST image (784 bytes)\r\n");
+            Mutex_Unlock(MUTEX_UART);
 
-        Busy(2000);      // 2sec CPU만 먹음 (뮤텍스 안 씀)
+            sImgReceiver();
 
-        printf("[M] busy work end tick=%u\r\n", SysTick_GetTick());
+        } else if (strcmp(line, "stat") == 0) {
+            Mutex_Lock(MUTEX_UART);
+            printf("[SH] tick=%u, img_ready=%d\r\n", SysTick_GetTick(), Semaphore_GetCount(g_img_sem));
+            Mutex_Unlock(MUTEX_UART);
+        } else {
+            Mutex_Lock(MUTEX_UART);
+            printf("[SH] unknown cmd: %s\r\n", line);
+            Mutex_Unlock(MUTEX_UART);
+        }
     }
 }
 
-void Task_H(void* arg)
+void Task_Inference(void* arg)
 {
-    (void)arg;
     for (;;) {
-        // M이 먼저 한 번 깨어나서 CPU를 먹고 있는 동안
-        // 그보다 조금 늦게 등장해서 뮤텍스를 요구
-        printf("[H] delay 2sec tick=%u\r\n", SysTick_GetTick());
-        Task_Delay(2000);   // 2sec 후에 등장 (M보다 나중, L 임계구역 안)
+        Semaphore_Wait(g_img_sem);
+        uint32_t t0 = SysTick_GetTick();
 
-        printf("[H] try lock uart tick=%u\r\n", SysTick_GetTick());
-
-        // 여기서 BLOCKED 될 수 있고, 그 시점에 우선순위 상속 발생
         Mutex_Lock(MUTEX_UART);
-
-        printf("[H] in critical section tick=%u\r\n", SysTick_GetTick());
-        Busy(1000);  // 1sec 정도 임계구역
-
-        printf("[H] unlock uart tick=%u\r\n", SysTick_GetTick());
+        printf("[IF] start inference at tick=%u\r\n", t0);
         Mutex_Unlock(MUTEX_UART);
 
-        // 다시는 한동안 안 나오게 길게 쉼 (패턴이 눈에 잘 보이도록)
-        Task_Delay(100000); // 100sec 정도
+        // 1) g_img_buf -> 입력 텐서로 변환 (정규화, reshape 등)
+        // 2) 작은 MLP/CNN 실행 (또는 더미 연산)
+        int predicted = Mnist_RunInference(g_img_buf);
+
+        uint32_t t1 = SysTick_GetTick();
+
+        Mutex_Lock(MUTEX_UART);
+        printf("[IF] done. result=%d, elapsed=%u ms\r\n", predicted, t1 - t0);
+        Mutex_Unlock(MUTEX_UART);
     }
 }
 
-
-
-void TaskA(void* arg)
+void Task_Heartbeat(void* arg)
 {
-    while (1)
-    {
-        Mutex_Lock(MUTEX_UART);
-        printf("[TaskA] tick=%u\r\n", SysTick_GetTick());
-        Mutex_Unlock(MUTEX_UART);
-        Task_Delay(10);
-    }
+    for (;;) {
+        Task_Delay(1000);
 
-}
-void TaskB(void* arg)
-{
-    while (1) {
         Mutex_Lock(MUTEX_UART);
-        printf("[TaskB] tick=%u\r\n", SysTick_GetTick());
+        printf("[HB] tick=%u, img_ready=%d\r\n", SysTick_GetTick(), Semaphore_GetCount(g_img_sem));
         Mutex_Unlock(MUTEX_UART);
-        Task_Delay(20);
     }
 }

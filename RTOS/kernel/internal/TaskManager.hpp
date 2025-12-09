@@ -44,7 +44,9 @@ public:
 	void SetRunningTaskID(uint32_t id);
 	uint32_t GetWakeTimeById(uint32_t id);
 	void MutexWait(uint32_t owner_id);
-	void MutexWake(const std::array<uint32_t, MAX_TASK_NUM>& waiting_list, uint32_t waiting_count);
+	void MutexWake(Task* next);
+	void SemWait(void);
+	void SemWake(Task* next);
 	void PushToReadyById(uint32_t id);
 	int32_t PendSignalById(uint32_t pid, int32_t sig);
 	static TaskManager& sGetInstance(void);

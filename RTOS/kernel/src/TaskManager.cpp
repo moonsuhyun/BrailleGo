@@ -13,7 +13,7 @@
 #include <cstdio>
 #include "BspMemoryMap.h"
 #include "BspSysTick.h"
-#include "types.h"
+#include "Types.h"
 
 TaskManager::~TaskManager() {
 	// TODO Auto-generated destructor stub
@@ -34,12 +34,12 @@ uint32_t TaskManager::GetWakeTimeById(uint32_t id)
 }
 
 void TaskManager::SysTickCallback(void) {
-	while (!Kernel_TaskQ_Is_Empty(TASK_BLOCKED_DELAY))
+	while (!Kernel_TaskQ_Is_Empty(TASK_BLOCKED))
 	{
 		uint32_t task_id;
-		Kernel_TaskQ_Get_Front(TASK_BLOCKED_DELAY, &task_id);
+		Kernel_TaskQ_Get_Front(TASK_BLOCKED, &task_id);
 		if (!m_task_list[task_id].IsDelayTimeOver()) break;
-		Kernel_TaskQ_Dequeue(TASK_BLOCKED_DELAY, &task_id);
+		Kernel_TaskQ_Dequeue(TASK_BLOCKED, &task_id);
 		m_task_list[task_id].SetNextState(EVENT_UNBLOCK);
 	}
 	m_task_list[m_running_task_id].DecreaseTimeSlice();
@@ -116,11 +116,11 @@ void TaskManager::Scheduler(void) {
 	if (!next_task)
 	{
 		next_task = &m_task_list.at(INIT_TASK_ID);
-		uint32_t tick = BSP_Get_Tick();
-		if (tick % 1000 == 0)
-		{
-			printf("[Tick %u] Init task scheduled\r\n", BSP_Get_Tick());
-		}
+		// uint32_t tick = BSP_Get_Tick();
+		// if (tick % 1000 == 0)
+		// {
+		// 	printf("[Tick %u] Init task scheduled\r\n", BSP_Get_Tick());
+		// }
 	}
 
    next_task->SetNextState(EVENT_SCHEDULE);
@@ -139,16 +139,23 @@ void TaskManager::MutexWait(uint32_t owner_id)
 		}
 		m_task_list.at(owner_id).InheritPriority(current_priority);
 	}
-	m_task_list.at(m_running_task_id).SetNextState(EVENT_MUTEX);
+	m_task_list.at(m_running_task_id).SetNextState(EVENT_WAIT);
 }
 
-void TaskManager::MutexWake(const std::array<uint32_t, MAX_TASK_NUM>& waiting_list, uint32_t waiting_count)
+void TaskManager::MutexWake(Task* next)
 {
 	m_task_list.at(m_running_task_id).RestorePriority();
-	for (uint32_t i = 0; i < waiting_count; i++)
-	{
-		m_task_list.at(waiting_list[i]).SetNextState(EVENT_UNBLOCK);
-	}
+	next->SetNextState(EVENT_UNBLOCK);
+}
+
+void TaskManager::SemWait(void)
+{
+	m_task_list.at(m_running_task_id).SetNextState(EVENT_WAIT);
+}
+
+void TaskManager::SemWake(Task* next)
+{
+	next->SetNextState(EVENT_UNBLOCK);
 }
 
 void TaskManager::PushToReadyById(uint32_t id)

@@ -8,7 +8,7 @@
 #include "PortTask.h"
 
 #include "cmsis_gcc.h"
-#include "types.h"
+#include "Types.h"
 #include "TaskManager.h"
 
 void Port_Task_Create(TaskStackFrame_t* task_frame, uint32_t wrapper, uint32_t task_func, void* arg) {

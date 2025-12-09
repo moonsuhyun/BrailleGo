@@ -41,9 +41,9 @@ int main(void)
 static void sTask_Init(void)
 {
     int task_id;
-    task_id = Task_Create(Task_L, NULL, 2);
-    task_id = Task_Create(Task_M, NULL, 1);
-    task_id = Task_Create(Task_H, NULL, 0);
+    // task_id = Task_Create(Task_L, NULL, 2);
+    // task_id = Task_Create(Task_M, NULL, 1);
+    // task_id = Task_Create(Task_H, NULL, 0);
 
     // Task_Create(TaskA, NULL, 0);
     // Task_Create(TaskB, NULL, 0);

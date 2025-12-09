@@ -2,11 +2,11 @@
 // Created by ��������� on 25. 10. 13..
 //
 
-#ifndef BRAILLEGO_PRIORITYQUEUE_HPP
-#define BRAILLEGO_PRIORITYQUEUE_HPP
+#ifndef KERNEL_INTERNAL_PRIORITYQUEUE_HPP_
+#define KERNEL_INTERNAL_PRIORITYQUEUE_HPP_
 
 #include "Task.hpp"
-#include "types.h"
+#include "Types.h"
 #include <array>
 
 class PriorityQueue
@@ -34,4 +34,4 @@ public:
     bool Remove(Task* task);
 };
 
-#endif //BRAILLEGO_PRIORITYQUEUE_HPP
+#endif // KERNEL_INTERNAL_PRIORITYQUEUE_HPP_

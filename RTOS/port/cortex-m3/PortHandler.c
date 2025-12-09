@@ -36,8 +36,9 @@ extern "C" {
 #include "PortHandler.h"
 #include "Kernel.h"
 #include "TaskManager.h"
-#include "types.h"
+#include "Types.h"
 #include "Mutex.h"
+#include "Semaphore.h"
 #include <stdio.h>
 #include <sys/errno.h>
 /* USER CODE END Includes */
@@ -271,6 +272,18 @@ void SVC_Handler_Main(uint32_t* sp)
         break;
     case SC_MUTUNLOCK:
         ret = Kernel_Mutex_Unlock(arg0);
+        break;
+    case SC_SEMCREATE:
+        ret = Kernel_Semaphore_Create(arg0);
+        break;
+    case SC_SEMWAIT:
+        ret = Kernel_Semaphore_Wait(arg0);
+        break;
+    case SC_SEMSIGNAL:
+        ret = Kernel_Semaphore_Signal(arg0);
+        break;
+    case SC_SEMGETCNT:
+        ret = Kernel_Semaphore_GetCount(arg0);
         break;
     }
 

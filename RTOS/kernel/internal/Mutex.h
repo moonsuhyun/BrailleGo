@@ -2,8 +2,8 @@
 // Created by ��������� on 25. 10. 14..
 //
 
-#ifndef BRAILLEGO_MUTEX_H
-#define BRAILLEGO_MUTEX_H
+#ifndef KERNEL_INTERNAL_MUTEX_H_
+#define KERNEL_INTERNAL_MUTEX_H_
 
 #include "Kernel.h"
 
@@ -18,4 +18,4 @@ uint32_t Kernel_Mutex_Unlock(MutexType_t mutex_type);
 }
 #endif
 
-#endif //BRAILLEGO_MUTEX_H
+#endif // KERNEL_INTERNAL_MUTEX_H_

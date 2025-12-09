@@ -5,10 +5,10 @@
  *      Author: moon
  */
 
-#ifndef KERNEL_TASKQ_H_
-#define KERNEL_TASKQ_H_
+#ifndef KERNEL_INTERNAL_TASKQ_H_
+#define KERNEL_INTERNAL_TASKQ_H_
 
-#include "types.h"
+#include "Types.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -33,5 +33,4 @@ extern "C" {
 }
 #endif
 
-
-#endif /* KERNEL_TASKQ_H_ */
+#endif // KERNEL_INTERNAL_TASKQ_H_

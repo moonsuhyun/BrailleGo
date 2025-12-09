@@ -30,7 +30,11 @@ typedef enum SysCallNo
     SC_GETTICK   = SCG_SYSTICK | 0x0001U,
 
     SC_MUTLOCK   = SCG_SYNC    | 0x0001U,
-    SC_MUTUNLOCK = SCG_SYNC    | 0x0002U
+    SC_MUTUNLOCK = SCG_SYNC    | 0x0002U,
+    SC_SEMCREATE = SCG_SYNC    | 0x0003U,
+    SC_SEMWAIT   = SCG_SYNC    | 0x0004U,
+    SC_SEMSIGNAL = SCG_SYNC    | 0x0005U,
+    SC_SEMGETCNT = SCG_SYNC    | 0x0006U
 
 } SysCallNo_t;
 
@@ -40,47 +44,32 @@ typedef enum MutexType
     MUTEX_TYPE_NUM
 } MutexType_t;
 
+typedef uint32_t SemHandle_t;
+
 typedef void (*KernelTaskFunc_t)(void*);
 
-// void Kernel_Init(KernelTaskFunc_t init_task);
 void Kernel_Start(KernelTaskFunc_t init_task);
 uint32_t Task_Create(void (*start_func)(void*), void* arg, uint32_t priority);
 void Task_Yield(void);
 void Task_Delay(uint32_t ms);
 void Task_Terminate();
 
-bool Mutex_Lock(MutexType_t mutex_type);
-bool Mutex_Unlock(MutexType_t mutex_type);
+void Mutex_Lock(MutexType_t mutex_type);
+void Mutex_Unlock(MutexType_t mutex_type);
+
+SemHandle_t Semaphore_Create(int32_t initial_count);
+void Semaphore_Wait(SemHandle_t h);
+void Semaphore_Signal(SemHandle_t h);
+int32_t Semaphore_GetCount(SemHandle_t h);
 
 uint32_t SysTick_GetTick(void);
 bool Kernel_Is_Running(void);
 
+int32_t UART_Read(uint8_t* buf, uint32_t len);
+int32_t UART_ReadLine(char* buf, uint32_t max_len);
+
 #ifdef __cplusplus
 }
 #endif
-
-// user task에서 접근 가능한 kernel service 정의
-
-//void Kernel_Init(void);
-//void Kernel_Start(void);
-//uint32_t Kernel_Create(void (*start_func)(void));
-//void Kernel_Yield(void);
-//void Kernel_Delay(uint32_t ms);
-//void Kernel_Terminate();
-
-//uint32_t Kernel_Get_SysTick(void);
-//bool Kernel_Is_Initialized(void);
-
-//void Kernel_send_events(uint32_t event_list);
-//KernelEventFlag_t Kernel_wait_events(uint32_t waiting_list);
-//
-//bool Kernel_send_msg(KernelMsgQ_t Qname, void* data, uint32_t count);
-//uint32_t Kernel_recv_msg(KernelMsgQ_t Qname, void* outdata, uint32_t count);
-
-//void Kernel_lock_sem(void);
-//void Kernel_unlock_sem(void);
-//
-//void Kernel_lock_mutex(void);
-//void Kernel_unlock_mutex(void);
 
 #endif // KERNEL_KERNEL_H_

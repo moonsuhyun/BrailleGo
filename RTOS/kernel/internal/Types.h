@@ -1,5 +1,5 @@
 /*
- * types.h
+ * Types.h
  *
  *  Created on: May 27, 2025
  *      Author: moon
@@ -21,12 +21,12 @@
 #define STACK_CANARY_VALUE 0xDEADBEEF
 #define INIT_TASK_ID 0
 #define MAX_PRIORITY_NUM 32
+#define MAX_SEMAPHORE_NUM 8
 
 typedef enum KernelTaskState {
 	TASK_READY,
 	TASK_RUNNING,
-	TASK_BLOCKED_DELAY,
-	TASK_BLOCKED_MUTEX,
+	TASK_BLOCKED,
 	TASK_SUSPENDED,
 	TASK_TERMINATED,
 	TASK_INIT_RUNNING,
@@ -47,7 +47,8 @@ typedef struct KernelTcb {
 typedef enum KernelTaskEvent {
 	EVENT_YIELD,
 	EVENT_DELAY,
-	EVENT_MUTEX,
+	EVENT_WAIT,
+	EVENT_SEMAPHORE,
 	EVENT_UNBLOCK,
 	EVENT_SCHEDULE,
 	EVENT_SUSPEND,
