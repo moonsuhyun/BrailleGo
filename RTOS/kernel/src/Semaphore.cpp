@@ -35,13 +35,13 @@ void Semaphore::Destroy(SemHandle h)
     }
 }
 
-void Semaphore::Wait(SemHandle h)
+uint32_t Semaphore::Wait(SemHandle h)
 {
     Semaphore* sem = FromHandle(h);
 
     if (sem->m_count > 0) {
         sem->m_count--;
-        return;
+        return sem->m_count;
     }
 
     TaskManager& task_manager = TaskManager::sGetInstance();
@@ -50,22 +50,27 @@ void Semaphore::Wait(SemHandle h)
     sem->m_waiting_count++;
     sem->m_waiting_list.Push(current_task);
     task_manager.SemWait();
+
+    return sem->m_count;
 }
 
-void Semaphore::Signal(SemHandle h)
+uint32_t Semaphore::Signal(SemHandle h)
 {
     auto* sem = FromHandle(h);
 
     if (sem->m_waiting_count > 0)
-        {
+    {
         sem->m_waiting_count--;
         Task* next = sem->m_waiting_list.Pop();
 
         TaskManager::sGetInstance().SemWake(next);
+
+        return sem->m_count;
     }
     else
     {
         sem->m_count++;
+        return sem->m_count;
     }
 }
 
@@ -82,14 +87,12 @@ uint32_t Kernel_Semaphore_Create(int32_t initial_count)
 
 uint32_t Kernel_Semaphore_Wait(uint32_t h)
 {
-    Semaphore::Wait(h);
-    return 0;
+    return Semaphore::Wait(h);
 }
 
 uint32_t Kernel_Semaphore_Signal(uint32_t h)
 {
-    Semaphore::Signal(h);
-    return 0;
+    return Semaphore::Signal(h);
 }
 
 uint32_t Kernel_Semaphore_GetCount(uint32_t h)

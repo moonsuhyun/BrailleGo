@@ -8,6 +8,7 @@
 #include "BspUart.h"
 
 #include "Kernel.h"
+#include "Semaphore.h"
 #include "stm32f1xx_hal.h"
 
 extern UART_HandleTypeDef huart2;
@@ -29,6 +30,8 @@ static UartRxRing g_uart_rx;
 
 static uint8_t g_rx_byte;
 
+static SemHandle_t g_uart_rx_sem = -1;
+
 static void UartRx_PutFromISR(uint8_t b)
 {
     uint16_t next = (g_uart_rx.head + 1U) % UART_RX_BUF_SIZE;
@@ -41,8 +44,19 @@ static void UartRx_PutFromISR(uint8_t b)
     g_uart_rx.buf[g_uart_rx.head] = b;
     g_uart_rx.head = next;
 
-    // Event_Signal(&uart_rx_event);
+    Kernel_Semaphore_Signal(g_uart_rx_sem);
 }
+
+void BSP_UART_Init(void)
+{
+    g_uart_rx.head = 0;
+    g_uart_rx.tail = 0;
+
+    g_uart_rx_sem = Semaphore_Create(0);
+
+    HAL_UART_Receive_IT(&huart2, &g_rx_byte, 1);
+}
+
 
 void BSP_UART_RxISRHandler(uint8_t byte)
 {
@@ -68,7 +82,7 @@ int32_t BSP_UART_GetCharBlocking(uint8_t* out)
         if (BSP_UART_GetChar(out)) {
             return 1;
         }
-        Task_Delay(1);
+        Semaphore_Wait(g_uart_rx_sem);
     }
 }
 

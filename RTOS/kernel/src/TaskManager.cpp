@@ -34,12 +34,12 @@ uint32_t TaskManager::GetWakeTimeById(uint32_t id)
 }
 
 void TaskManager::SysTickCallback(void) {
-	while (!Kernel_TaskQ_Is_Empty(TASK_BLOCKED))
+	while (!Kernel_TaskQ_Is_Empty(TASK_BLOCKED_DELAY))
 	{
 		uint32_t task_id;
-		Kernel_TaskQ_Get_Front(TASK_BLOCKED, &task_id);
+		Kernel_TaskQ_Get_Front(TASK_BLOCKED_DELAY, &task_id);
 		if (!m_task_list[task_id].IsDelayTimeOver()) break;
-		Kernel_TaskQ_Dequeue(TASK_BLOCKED, &task_id);
+		Kernel_TaskQ_Dequeue(TASK_BLOCKED_DELAY, &task_id);
 		m_task_list[task_id].SetNextState(EVENT_UNBLOCK);
 	}
 	m_task_list[m_running_task_id].DecreaseTimeSlice();

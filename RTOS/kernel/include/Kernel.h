@@ -58,8 +58,8 @@ void Mutex_Lock(MutexType_t mutex_type);
 void Mutex_Unlock(MutexType_t mutex_type);
 
 SemHandle_t Semaphore_Create(int32_t initial_count);
-void Semaphore_Wait(SemHandle_t h);
-void Semaphore_Signal(SemHandle_t h);
+uint32_t Semaphore_Wait(SemHandle_t h);
+uint32_t Semaphore_Signal(SemHandle_t h);
 int32_t Semaphore_GetCount(SemHandle_t h);
 
 uint32_t SysTick_GetTick(void);
@@ -67,6 +67,7 @@ bool Kernel_Is_Running(void);
 
 int32_t UART_Read(uint8_t* buf, uint32_t len);
 int32_t UART_ReadLine(char* buf, uint32_t max_len);
+int32_t UART_ReadLineEx(char* buf, uint32_t max_len, void begin(void), void end(void));
 
 #ifdef __cplusplus
 }

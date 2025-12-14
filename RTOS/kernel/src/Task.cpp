@@ -35,10 +35,11 @@ void Task::SetNextState(KernelTaskEvent_t event) {
 	//		|CUR_STATE----------|EVENT-----------|ACTION------------------|NEXT_STATE---------|
 	{TASK_READY, EVENT_SCHEDULE, &Task::readySchedule, TASK_RUNNING},
 	{TASK_RUNNING, EVENT_YIELD, &Task::runningYield, TASK_READY},
-	{TASK_RUNNING, EVENT_DELAY, &Task::runningDelay, TASK_BLOCKED},
+	{TASK_RUNNING, EVENT_DELAY, &Task::runningDelay, TASK_BLOCKED_DELAY},
 	{TASK_RUNNING, EVENT_SUSPEND, &Task::runningSuspend, TASK_SUSPENDED},
-	{TASK_RUNNING, EVENT_WAIT, &Task::runningWait, TASK_BLOCKED},
-	{TASK_BLOCKED, EVENT_UNBLOCK, &Task::blockedUnblock, TASK_READY},
+	{TASK_RUNNING, EVENT_WAIT, &Task::runningWait, TASK_BLOCKED_WAIT},
+	{TASK_BLOCKED_DELAY, EVENT_UNBLOCK, &Task::blockedUnblock, TASK_READY},
+	{TASK_BLOCKED_WAIT, EVENT_UNBLOCK, &Task::blockedUnblock, TASK_READY},
 	{TASK_SUSPENDED, EVENT_RESUME, &Task::suspendResume, TASK_READY},
 	{TASK_RUNNING, EVENT_TERMINATE, &Task::runningTerminate, TASK_TERMINATED},
 	{TASK_TERMINATED, EVENT_CREATE, &Task::terminatedCreate, TASK_READY},
@@ -81,7 +82,7 @@ void Task::runningYield(void) {
 }
 
 void Task::runningDelay(void) {
-	Kernel_TaskQ_Enqueue_Sorted_By_Wake_Time(TASK_BLOCKED, m_id);
+	Kernel_TaskQ_Enqueue_Sorted_By_Wake_Time(TASK_BLOCKED_DELAY, m_id);
 	Port_Core_Trigger_PendSV();
 }
 

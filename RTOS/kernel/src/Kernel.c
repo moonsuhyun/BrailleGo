@@ -32,6 +32,8 @@ void Kernel_Start(KernelTaskFunc_t init_task)
 
         Port_Core_Interrupt_Init();
 
+        BSP_UART_Init();
+
         is_initiated = true;
 
         Port_Task_Start();
@@ -73,14 +75,14 @@ SemHandle_t Semaphore_Create(int32_t initial_count)
     return Port_Core_SVC_Call(SC_SEMCREATE, (void*)initial_count, NULL, NULL);
 }
 
-void Semaphore_Wait(SemHandle_t h)
+uint32_t Semaphore_Wait(SemHandle_t h)
 {
-    Port_Core_SVC_Call(SC_SEMWAIT, (void*)h, NULL, NULL);
+    return Port_Core_SVC_Call(SC_SEMWAIT, (void*)h, NULL, NULL);
 }
 
-void Semaphore_Signal(SemHandle_t h)
+uint32_t Semaphore_Signal(SemHandle_t h)
 {
-    Port_Core_SVC_Call(SC_SEMSIGNAL, (void*)h, NULL, NULL);
+    return Port_Core_SVC_Call(SC_SEMSIGNAL, (void*)h, NULL, NULL);
 }
 
 int32_t Semaphore_GetCount(SemHandle_t h)
@@ -149,6 +151,56 @@ int32_t UART_ReadLine(char* buf, uint32_t max_len)
         }
     }
 
+    buf[pos] = '\0';
+    return (int)pos;
+}
+
+
+int32_t UART_ReadLineEx(char* buf, uint32_t max_len,
+                        void (*begin)(void),
+                        void (*end)(void))
+{
+    static uint8_t drop_lf = 0;
+
+    size_t pos = 0;
+    uint8_t ch;
+    uint8_t started = 0;
+
+    for (;;) {
+        BSP_UART_GetCharBlocking(&ch);
+
+        if (drop_lf) {
+            drop_lf = 0;
+            if (ch == '\n') continue;
+        }
+
+        if (!started) {
+            begin();
+            Mutex_Lock(MUTEX_UART);
+            started = 1;
+        }
+
+        if (ch == '\r' || ch == '\n') {
+            if (ch == '\r') drop_lf = 1;
+            printf("\r\n");
+            Mutex_Unlock(MUTEX_UART);
+            end();
+            break;
+        } else if (ch == '\b' || ch == 0x7F) {
+            // backspace
+            if (pos > 0) {
+                pos--;
+                printf("\b \b");
+            }
+        } else {
+            if (pos < max_len - 1) {
+                buf[pos++] = (char)ch;
+                printf("%c", ch);   // echo
+            } else {
+                // buffer full
+            }
+        }
+    }
     buf[pos] = '\0';
     return (int)pos;
 }

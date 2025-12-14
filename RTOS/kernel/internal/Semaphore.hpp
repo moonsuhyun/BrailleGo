@@ -12,7 +12,7 @@ class Semaphore
 {
 private:
     bool     m_used{false};
-    int32_t  m_count{0};
+    uint32_t m_count{0};
     uint32_t m_waiting_count{0};
     PriorityQueue m_waiting_list{};
     static std::array<Semaphore, MAX_SEMAPHORE_NUM> s_sems;
@@ -21,8 +21,8 @@ public:
     static SemHandle Create(int32_t initial_count);
     static void      Destroy(SemHandle h);
 
-    static void Wait(SemHandle h);
-    static void Signal(SemHandle h);
+    static uint32_t Wait(SemHandle h);
+    static uint32_t Signal(SemHandle h);
     static uint32_t GetCount(SemHandle h);
 };
 

@@ -7,14 +7,11 @@
 
 #include "usertask.h"
 
+#include "mnist_model.h"
 #include "Kernel.h"
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
-
-#define IMG_W 28
-#define IMG_H 28
-#define IMG_SIZE (IMG_W * IMG_H)
 
 typedef enum
 {
@@ -26,8 +23,32 @@ typedef enum
     IR_RECV_CHK,
 } ImgRxState_t;
 
-static uint8_t g_img_buf[IMG_SIZE];
+static uint8_t g_img_buf[2][MNIST_IMG_SIZE];
 static SemHandle_t g_img_sem = -1;
+static SemHandle_t g_buf_sem = -1;
+
+static int g_write_idx = 0;
+static int g_read_idx  = 0;
+
+static int g_img = 0;
+
+static void busy_loop(uint32_t ms)
+{
+    uint32_t end_time = SysTick_GetTick() + ms;
+    while (SysTick_GetTick() < end_time) { __asm volatile("nop"); }
+}
+
+static void shell_begin(void)
+{
+    Mutex_Lock(MUTEX_UART);
+    printf("[SH] > ");
+    Mutex_Unlock(MUTEX_UART);
+}
+
+static void shell_end(void)
+{
+    // nop
+}
 
 static int32_t sImgReceiver(void)
 {
@@ -52,18 +73,18 @@ static int32_t sImgReceiver(void)
             break;
 
         case IR_WAIT_W:
-            if (byte == IMG_W) rx_state = IR_WAIT_H;
+            if (byte == MNIST_IMG_W) rx_state = IR_WAIT_H;
             else
             {
                 Mutex_Lock(MUTEX_UART);
                 printf("[SH] image width error\r\n");
                 Mutex_Unlock(MUTEX_UART);
-                return -1;
+                rx_state = IR_WAIT_M;
             }
             break;
 
         case IR_WAIT_H:
-            if (byte == IMG_H)
+            if (byte == MNIST_IMG_H)
             {
                 rx_state = IR_RECV_DATA;
                 idx = 0;
@@ -73,14 +94,17 @@ static int32_t sImgReceiver(void)
                 Mutex_Lock(MUTEX_UART);
                 printf("[SH] image height error\r\n");
                 Mutex_Unlock(MUTEX_UART);
-                return -1;
+                rx_state = IR_WAIT_M;
             }
             break;
 
         case IR_RECV_DATA:
-            g_img_buf[idx++] = byte;
+            Mutex_Lock(MUTEX_UART);
+            printf("[SH] %d bytes received\r\n", idx);
+            Mutex_Unlock(MUTEX_UART);
+            g_img_buf[g_write_idx][idx++] = byte;
             checksum ^= byte;
-            if (idx >= IMG_SIZE) {
+            if (idx >= MNIST_IMG_SIZE) {
                 rx_state = IR_RECV_CHK;
             }
             break;
@@ -88,9 +112,11 @@ static int32_t sImgReceiver(void)
         case IR_RECV_CHK:
             if (checksum == byte) {
                 Semaphore_Signal(g_img_sem);
+                g_img++;
                 Mutex_Lock(MUTEX_UART);
-                printf("[SH] image received OK at tick=%u\r\n", SysTick_GetTick());
+                printf("[SH] image received OK buf=%d, tick=%u\r\n", g_write_idx, SysTick_GetTick());
                 Mutex_Unlock(MUTEX_UART);
+                g_write_idx ^= 1;
                 rx_state = IR_WAIT_M;
                 return 0;
             }
@@ -106,22 +132,32 @@ static int32_t sImgReceiver(void)
 void Task_Shell(void* arg)
 {
     g_img_sem = Semaphore_Create(0);
+    g_buf_sem = Semaphore_Create(2);
 
     char line[64];
 
     for (;;) {
-        UART_ReadLine(line, sizeof(line));
+
+        int32_t n = UART_ReadLineEx(line, sizeof(line), shell_begin, shell_end);
+        if (n <= 0) continue;
 
         if (strcmp(line, "help") == 0) {
             Mutex_Lock(MUTEX_UART);
             printf("[SH] commands: help, recv, stat\r\n");
             Mutex_Unlock(MUTEX_UART);
         } else if (strcmp(line, "recv") == 0) {
+            Semaphore_Wait(g_buf_sem);
+
             Mutex_Lock(MUTEX_UART);
             printf("[SH] Ready to receive MNIST image (784 bytes)\r\n");
             Mutex_Unlock(MUTEX_UART);
 
-            sImgReceiver();
+            int32_t result = sImgReceiver();
+
+            if (result < 0)
+            {
+                Semaphore_Signal(g_buf_sem);
+            }
 
         } else if (strcmp(line, "stat") == 0) {
             Mutex_Lock(MUTEX_UART);
@@ -137,23 +173,34 @@ void Task_Shell(void* arg)
 
 void Task_Inference(void* arg)
 {
+    while (g_img_sem < 0)
+    {
+        Task_Yield();
+    }
     for (;;) {
         Semaphore_Wait(g_img_sem);
+        g_img--;
+
         uint32_t t0 = SysTick_GetTick();
 
+        int buf_idx = g_read_idx;
+        g_read_idx ^= 1;
+
         Mutex_Lock(MUTEX_UART);
-        printf("[IF] start inference at tick=%u\r\n", t0);
+        printf("[IF] start inference buf=%d, tick=%u\r\n", buf_idx, t0);
         Mutex_Unlock(MUTEX_UART);
 
-        // 1) g_img_buf -> 입력 텐서로 변환 (정규화, reshape 등)
-        // 2) 작은 MLP/CNN 실행 (또는 더미 연산)
-        int predicted = Mnist_RunInference(g_img_buf);
+        busy_loop(2000);
+        int predicted = Mnist_RunInference(g_img_buf[buf_idx]);
+        busy_loop(2000);
 
         uint32_t t1 = SysTick_GetTick();
 
         Mutex_Lock(MUTEX_UART);
         printf("[IF] done. result=%d, elapsed=%u ms\r\n", predicted, t1 - t0);
         Mutex_Unlock(MUTEX_UART);
+
+        Semaphore_Signal(g_buf_sem);
     }
 }
 
@@ -163,7 +210,7 @@ void Task_Heartbeat(void* arg)
         Task_Delay(1000);
 
         Mutex_Lock(MUTEX_UART);
-        printf("[HB] tick=%u, img_ready=%d\r\n", SysTick_GetTick(), Semaphore_GetCount(g_img_sem));
+        printf("[HB] tick=%u, img_ready=%d\r\n", SysTick_GetTick(), g_img);
         Mutex_Unlock(MUTEX_UART);
     }
 }
