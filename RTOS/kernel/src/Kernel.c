@@ -7,12 +7,21 @@
 #include "BspHwInit.h"
 #include "BspSysTick.h"
 #include "BspUart.h"
+#include "BspCan.h"
 #include "PortCore.h"
 #include "PortTask.h"
 #include "TaskManager.h"
 #include <stdio.h>
 
 static bool is_initiated = false;
+
+#ifndef CAN_USE_LOOPBACK
+// 1: Silent Loopback
+// 0: Normal Mode
+#define CAN_USE_LOOPBACK 1
+#endif
+
+static int32_t g_can_init_status = -1;
 
 void Kernel_Start(KernelTaskFunc_t init_task)
 {
@@ -33,6 +42,9 @@ void Kernel_Start(KernelTaskFunc_t init_task)
         Port_Core_Interrupt_Init();
 
         BSP_UART_Init();
+
+        g_can_init_status = BSP_CAN_Init(CAN_USE_LOOPBACK ? BSP_CAN_MODE_LOOPBACK
+                                                          : BSP_CAN_MODE_NORMAL);
 
         is_initiated = true;
 
@@ -203,4 +215,26 @@ int32_t UART_ReadLineEx(char* buf, uint32_t max_len,
     }
     buf[pos] = '\0';
     return (int)pos;
+}
+
+int32_t CAN_Send(CanFrame_t const* frame)
+{
+    if (g_can_init_status != 0 || frame == NULL) return -1;
+    return BSP_CAN_Transmit(frame);
+}
+
+int32_t CAN_ReceiveBlocking(CanFrame_t* out)
+{
+    if (g_can_init_status != 0 || out == NULL) return -1;
+    return BSP_CAN_GetFrameBlocking(out);
+}
+
+int32_t CAN_GetInitStatus(void)
+{
+    return g_can_init_status;
+}
+
+uint32_t CAN_GetRxDropCount(void)
+{
+    return BSP_CAN_GetRxDropCount();
 }

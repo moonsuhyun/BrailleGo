@@ -46,6 +46,15 @@ typedef enum MutexType
 
 typedef uint32_t SemHandle_t;
 
+typedef struct
+{
+    uint32_t id;      // 11-bit (standard) or 29-bit (extended) identifier
+    uint8_t  dlc;     // 0..8
+    uint8_t  data[8];
+    bool     ext;     // extended (29-bit) frame
+    bool     rtr;     // remote frame
+} CanFrame_t;
+
 typedef void (*KernelTaskFunc_t)(void*);
 
 void Kernel_Start(KernelTaskFunc_t init_task);
@@ -68,6 +77,11 @@ bool Kernel_Is_Running(void);
 int32_t UART_Read(uint8_t* buf, uint32_t len);
 int32_t UART_ReadLine(char* buf, uint32_t max_len);
 int32_t UART_ReadLineEx(char* buf, uint32_t max_len, void begin(void), void end(void));
+
+int32_t  CAN_Send(CanFrame_t const* frame);    // 사용한 메일박스 번호(0-2), 실패 시 음수
+int32_t  CAN_ReceiveBlocking(CanFrame_t* out); // 프레임이 올 때까지 블록
+int32_t  CAN_GetInitStatus(void);              // 0 성공, 음수는 BSP_CAN_Init 오류 코드
+uint32_t CAN_GetRxDropCount(void);             // 버퍼 부족으로 버린 수신 프레임 수
 
 #ifdef __cplusplus
 }
