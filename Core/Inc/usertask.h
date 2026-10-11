@@ -11,5 +11,6 @@
 void Task_Shell(void* arg);
 void Task_Inference(void* arg);
 void Task_Heartbeat(void* arg);
+void Task_CanRx(void* arg);
 
 #endif /* INC_USERTASK_H_ */

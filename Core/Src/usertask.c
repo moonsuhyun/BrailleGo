@@ -11,6 +11,7 @@
 #include "Kernel.h"
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 typedef enum
@@ -129,6 +130,40 @@ static int32_t sImgReceiver(void)
     }
 }
 
+// Shell command: can <hex id> [hex byte ...] e.g., can 123 11 22 33
+static void sCanSendCmd(char* args)
+{
+    CanFrame_t f = {0};
+    char* end;
+
+    f.id = (uint32_t)strtoul(args, &end, 16);
+    if (end == args) {
+        Mutex_Lock(MUTEX_UART);
+        printf("[SH] usage: can <id> [b0 .. b7]\r\n");
+        Mutex_Unlock(MUTEX_UART);
+        return;
+    }
+    f.ext = (f.id > 0x7FFU);
+
+    char* p = end;
+    while (f.dlc < 8U) {
+        unsigned long b = strtoul(p, &end, 16);
+        if (end == p) break;
+        f.data[f.dlc++] = (uint8_t)b;
+        p = end;
+    }
+
+    int32_t mbx = CAN_Send(&f);
+    Mutex_Lock(MUTEX_UART);
+    if (mbx < 0) {
+        printf("[SH] can send failed (init=%ld)\r\n", (long)CAN_GetInitStatus());
+    } else {
+        printf("[SH] can tx id=0x%lX dlc=%u (mailbox %ld)\r\n",
+               (unsigned long)f.id, f.dlc, (long)mbx);
+    }
+    Mutex_Unlock(MUTEX_UART);
+}
+
 void Task_Shell(void* arg)
 {
     g_img_sem = Semaphore_Create(0);
@@ -143,7 +178,7 @@ void Task_Shell(void* arg)
 
         if (strcmp(line, "help") == 0) {
             Mutex_Lock(MUTEX_UART);
-            printf("[SH] commands: help, recv, stat\r\n");
+            printf("[SH] commands: help, recv, stat, can <id> [b0 .. b7]\r\n");
             Mutex_Unlock(MUTEX_UART);
         } else if (strcmp(line, "recv") == 0) {
             Semaphore_Wait(g_buf_sem);
@@ -159,6 +194,8 @@ void Task_Shell(void* arg)
                 Semaphore_Signal(g_buf_sem);
             }
 
+        } else if (strncmp(line, "can ", 4) == 0) {
+            sCanSendCmd(line + 4);
         } else if (strcmp(line, "stat") == 0) {
             Mutex_Lock(MUTEX_UART);
             printf("[SH] tick=%u, img_ready=%d\r\n", SysTick_GetTick(), Semaphore_GetCount(g_img_sem));
@@ -211,6 +248,27 @@ void Task_Heartbeat(void* arg)
 
         Mutex_Lock(MUTEX_UART);
         printf("[HB] tick=%u, img_ready=%d\r\n", SysTick_GetTick(), g_img);
+        Mutex_Unlock(MUTEX_UART);
+    }
+}
+
+void Task_CanRx(void* arg)
+{
+    CanFrame_t f;
+
+    for (;;) {
+        if (CAN_ReceiveBlocking(&f) <= 0) {
+            Task_Delay(1000);               /* CAN not initialised: back off */
+            continue;
+        }
+
+        Mutex_Lock(MUTEX_UART);
+        printf("[CAN] rx id=0x%lX%s%s dlc=%u data=",
+               (unsigned long)f.id, f.ext ? "(ext)" : "", f.rtr ? "(rtr)" : "", f.dlc);
+        for (uint8_t i = 0; i < f.dlc; i++) {
+            printf("%02X ", f.data[i]);
+        }
+        printf("\r\n");
         Mutex_Unlock(MUTEX_UART);
     }
 }

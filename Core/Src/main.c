@@ -19,6 +19,7 @@ static void sTask_Init(void)
 {
     Task_Create(Task_Inference, NULL, 2);
     Task_Create(Task_Heartbeat, NULL, 1);
+    Task_Create(Task_CanRx, NULL, 1);
     Task_Create(Task_Shell, NULL, 0);
 
     while (1)
