@@ -8,7 +8,7 @@
 
 #include "taskq.h"
 #include "TaskManager.h"
-
+#include <string.h>
 
 static KernelTaskCirQ_t sTaskQ[TASK_STATE_NUM];
 

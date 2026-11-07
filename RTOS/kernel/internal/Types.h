@@ -13,7 +13,9 @@
 
 #include "BspMemoryMap.h"
 
+#ifndef NULL
 #define NULL (void*)0
+#endif
 #define NOT_ENOUGH_TASK_NUM 0xFFFFFFFF
 //#define MAX_TASK_NUM (TASK_STACK_AREA_SIZE / TASK_STACK_SIZE)
 // #define MAX_TASK_NUM 3

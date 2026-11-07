@@ -129,20 +129,19 @@ __attribute((naked)) void MemManage_Handler(uint32_t* sp)
     printf("\r\n=========  TASK STACK OVERFLOW  ==========\r\n");
 
     int32_t task_id = current_tcb->id;
-    printf("Task ID: %d\r\n", task_id);
+    printf("Task ID: %ld\r\n", task_id);
 
     printf("\r\nTask Stack Info:\r\n");
     int32_t usage = TASK_STACK_TOP - task_id * TASK_STACK_SIZE - (int32_t)sp;
-    printf("  PSP: 0x%08X    %u/%u bytes used.\r\n", sp, usage, TASK_STACK_SIZE);
+    printf("  PSP: 0x%08lX    %ld/%d bytes used.\r\n", (unsigned long)sp, usage, TASK_STACK_SIZE);
 
     printf("\r\nStacked Registers at time of fault:\r\n");
-    printf("  R0:  0x%08X    R1:  0x%08X    R2:  0x%08X\r\n", sp[8], sp[9], sp[10]);
-    printf("  R3:  0x%08X    R4:  0x%08X    R5:  0x%08X\r\n", sp[11], sp[0], sp[1]);
-    printf("  R6:  0x%08X    R7:  0x%08X    R8:  0x%08X\r\n", sp[2], sp[3], sp[4]);
-    printf("  R9:  0x%08X    R10: 0x%08X    R11: 0x%08X\r\n", sp[5], sp[6], sp[7]);
-    printf("  R9:  0x%08X    R10: 0x%08X    R11: 0x%08X\r\n", sp[5], sp[6], sp[7]);
-    printf("  R12: 0x%08X    LR:  0x%08X    PC:  0x%08X\r\n", sp[12], sp[13], sp[14]);
-    printf("  PSR: 0x%08X\r\n", sp[15]);
+    printf("  R0:  0x%08lX    R1:  0x%08lX    R2:  0x%08lX\r\n", sp[8], sp[9], sp[10]);
+    printf("  R3:  0x%08lX    R4:  0x%08lX    R5:  0x%08lX\r\n", sp[11], sp[0], sp[1]);
+    printf("  R6:  0x%08lX    R7:  0x%08lX    R8:  0x%08lX\r\n", sp[2], sp[3], sp[4]);
+    printf("  R9:  0x%08lX    R10: 0x%08lX    R11: 0x%08lX\r\n", sp[5], sp[6], sp[7]);
+    printf("  R12: 0x%08lX    LR:  0x%08lX    PC:  0x%08lX\r\n", sp[12], sp[13], sp[14]);
+    printf("  PSR: 0x%08lX\r\n", sp[15]);
 
     printf("\r\n============= END FAULT DUMP =============\r\n");
 
@@ -490,17 +489,17 @@ __attribute((used)) void sFault_Dump(uint32_t* sp)
     if (sp_sel)
     {
         int32_t task_id = current_tcb->id;
-        printf("Task ID: %d\r\n", task_id);
+        printf("Task ID: %ld\r\n", task_id);
 
         printf("\r\nTask Stack Info:\r\n");
         int32_t usage = TASK_STACK_TOP - task_id * TASK_STACK_SIZE - (int32_t)sp;
-        printf("    SP: 0x%08X    %u/%u bytes used.\r\n", sp, usage, TASK_STACK_SIZE);
+        printf("    SP: 0x%08lX    %ld/%d bytes used.\r\n", (unsigned long)sp, usage, TASK_STACK_SIZE);
     }
 
     printf("\r\nStacked Registers at time of fault:\r\n");
-    printf("  R0:  0x%08X    R1:  0x%08X    R2:  0x%08X\r\n", sp[0], sp[1], sp[2]);
-    printf("  R3:  0x%08X    R12: 0x%08X    LR:  0x%08X\r\n", sp[3], sp[4], sp[5]);
-    printf("  PC:  0x%08X    PSR: 0x%08X\r\n", sp[6], sp[7]);
+    printf("  R0:  0x%08lX    R1:  0x%08lX    R2:  0x%08lX\r\n", sp[0], sp[1], sp[2]);
+    printf("  R3:  0x%08lX    R12: 0x%08lX    LR:  0x%08lX\r\n", sp[3], sp[4], sp[5]);
+    printf("  PC:  0x%08lX    PSR: 0x%08lX\r\n", sp[6], sp[7]);
 
     printf("\r\n============= END FAULT DUMP =============\r\n");
 
