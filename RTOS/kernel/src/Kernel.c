@@ -52,9 +52,9 @@ void Kernel_Start(KernelTaskFunc_t init_task)
     }
 }
 
-uint32_t Task_Create(void(* start_func)(void*), void* arg, uint32_t priority)
+uint32_t Task_Create(void (*start_func)(void*), void* arg, uint32_t priority)
 {
-    return Port_Core_SVC_Call(SC_CREATE, (void*)start_func, (void*)arg,  (void*)priority);
+    return Port_Core_SVC_Call(SC_CREATE, (void*)start_func, (void*)arg, (void*)priority);
 }
 
 void Task_Yield(void)
@@ -115,8 +115,10 @@ bool Kernel_Is_Running(void)
 int32_t UART_Read(uint8_t* buf, uint32_t len)
 {
     uint8_t ch;
-    for (size_t i = 0; i < len; ++i) {
-        if (BSP_UART_GetCharBlocking(&ch) < 0) {
+    for (size_t i = 0; i < len; ++i)
+    {
+        if (BSP_UART_GetCharBlocking(&ch) < 0)
+        {
             return -1;
         }
         buf[i] = ch;
@@ -131,33 +133,44 @@ int32_t UART_ReadLine(char* buf, uint32_t max_len)
 
     if (max_len == 0) return -1;
 
-    for (;;) {
-        if (BSP_UART_GetCharBlocking(&ch) < 0) {
+    for (;;)
+    {
+        if (BSP_UART_GetCharBlocking(&ch) < 0)
+        {
             continue;
         }
 
         // echo
-        if (ch == '\r' || ch == '\n') {
+        if (ch == '\r' || ch == '\n')
+        {
             // CR/LF
             Mutex_Lock(MUTEX_UART);
             printf("\r\n");
             Mutex_Unlock(MUTEX_UART);
             break;
-        } else if (ch == '\b' || ch == 0x7F) {
+        }
+        else if (ch == '\b' || ch == 0x7F)
+        {
             // backspace
-            if (pos > 0) {
+            if (pos > 0)
+            {
                 pos--;
                 Mutex_Lock(MUTEX_UART);
                 printf("\b \b");
                 Mutex_Unlock(MUTEX_UART);
             }
-        } else {
-            if (pos < max_len - 1) {
+        }
+        else
+        {
+            if (pos < max_len - 1)
+            {
                 buf[pos++] = (char)ch;
                 Mutex_Lock(MUTEX_UART);
-                printf("%c", ch);   // echo
+                printf("%c", ch); // echo
                 Mutex_Unlock(MUTEX_UART);
-            } else {
+            }
+            else
+            {
                 // buffer full
             }
         }
@@ -178,37 +191,49 @@ int32_t UART_ReadLineEx(char* buf, uint32_t max_len,
     uint8_t ch;
     uint8_t started = 0;
 
-    for (;;) {
+    for (;;)
+    {
         BSP_UART_GetCharBlocking(&ch);
 
-        if (drop_lf) {
+        if (drop_lf)
+        {
             drop_lf = 0;
             if (ch == '\n') continue;
         }
 
-        if (!started) {
+        if (!started)
+        {
             begin();
             Mutex_Lock(MUTEX_UART);
             started = 1;
         }
 
-        if (ch == '\r' || ch == '\n') {
+        if (ch == '\r' || ch == '\n')
+        {
             if (ch == '\r') drop_lf = 1;
             printf("\r\n");
             Mutex_Unlock(MUTEX_UART);
             end();
             break;
-        } else if (ch == '\b' || ch == 0x7F) {
+        }
+        else if (ch == '\b' || ch == 0x7F)
+        {
             // backspace
-            if (pos > 0) {
+            if (pos > 0)
+            {
                 pos--;
                 printf("\b \b");
             }
-        } else {
-            if (pos < max_len - 1) {
+        }
+        else
+        {
+            if (pos < max_len - 1)
+            {
                 buf[pos++] = (char)ch;
-                printf("%c", ch);   // echo
-            } else {
+                printf("%c", ch); // echo
+            }
+            else
+            {
                 // buffer full
             }
         }
