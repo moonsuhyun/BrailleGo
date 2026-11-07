@@ -214,9 +214,29 @@ int32_t BSP_CAN_GetFrameBlocking(CanFrame_t* out)
     }
 }
 
+// 링버퍼 full 또는 HW FIFO 오버런으로 버린 프레임 수
 uint32_t BSP_CAN_GetRxDropCount(void)
 {
     return g_can_rx_drop;
+}
+
+// 아직 전송이 끝나지 않은 프레임 수
+uint32_t BSP_CAN_GetTxPendingCount(void)
+{
+    uint32_t tsr = CAN1->TSR;
+    uint32_t count = 0U;
+
+    if (!(tsr & CAN_TSR_TME0)) count++;
+    if (!(tsr & CAN_TSR_TME1)) count++;
+    if (!(tsr & CAN_TSR_TME2)) count++;
+
+    return count;
+}
+
+// ISR이 아직 꺼내지 않은 수신 프레임 수
+uint32_t BSP_CAN_GetRxPendingCount(void)
+{
+    return (CAN1->RF0R & CAN_RF0R_FMP0);
 }
 
 // ISR이 링버퍼에 프레임을 넣고 태스크를 깨움

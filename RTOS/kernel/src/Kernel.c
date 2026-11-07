@@ -263,3 +263,10 @@ uint32_t CAN_GetRxDropCount(void)
 {
     return BSP_CAN_GetRxDropCount();
 }
+
+uint32_t CAN_GetPendingCount(void)
+{
+    if (g_can_init_status != 0) return 0U;
+    uint32_t const count = BSP_CAN_GetTxPendingCount() + BSP_CAN_GetRxPendingCount();
+    return count;
+}

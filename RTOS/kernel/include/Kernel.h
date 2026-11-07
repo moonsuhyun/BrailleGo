@@ -82,6 +82,7 @@ int32_t  CAN_Send(CanFrame_t const* frame);    // 사용한 메일박스 번호(
 int32_t  CAN_ReceiveBlocking(CanFrame_t* out); // 프레임이 올 때까지 블록
 int32_t  CAN_GetInitStatus(void);              // 0 성공, 음수는 BSP_CAN_Init 오류 코드
 uint32_t CAN_GetRxDropCount(void);             // 버퍼 부족으로 버린 수신 프레임 수
+uint32_t CAN_GetPendingCount(void);            // 송수신 대기 중인 프레임 수
 
 #ifdef __cplusplus
 }

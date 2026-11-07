@@ -25,6 +25,8 @@ int32_t  BSP_CAN_Transmit(const CanFrame_t* frame);
 int32_t  BSP_CAN_GetFrame(CanFrame_t* out);
 int32_t  BSP_CAN_GetFrameBlocking(CanFrame_t* out);
 uint32_t BSP_CAN_GetRxDropCount(void);
+uint32_t BSP_CAN_GetTxPendingCount(void);
+uint32_t BSP_CAN_GetRxPendingCount(void);
 
 #ifdef __cplusplus
 }
