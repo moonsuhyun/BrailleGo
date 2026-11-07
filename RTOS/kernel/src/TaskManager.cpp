@@ -173,10 +173,10 @@ void TaskManager::sTaskWrapper(void (*task_func)(void*), void* arg)
 }
 
 
-Task* TaskManager_Get_Current_Task(void)
+KernelTcb_t* TaskManager_Get_Current_Task(void)
 {
     TaskManager& task_manager = TaskManager::sGetInstance();
-    return task_manager.GetRunningTask();
+    return task_manager.GetRunningTask()->GetTcb();
 }
 
 int32_t TaskManager_Get_Current_Task_Id()

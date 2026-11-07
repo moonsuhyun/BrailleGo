@@ -10,12 +10,13 @@
 
 #include <stdint.h>
 
+#include "Types.h"
+
 // C, ASM에서 호출하기 위한 함수 Wrapper
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-typedef struct Task Task;
 typedef void (*KernelTaskFunc_t)(void*);
 
 // 초기화, 태스크 생명주기 (SVC 시스템 콜)
@@ -30,7 +31,7 @@ void TaskManager_Scheduler(void);
 void TaskManager_SysTick_Callback(void);
 
 // 조회
-Task*    TaskManager_Get_Current_Task(void);
+KernelTcb_t* TaskManager_Get_Current_Task(void);
 int32_t  TaskManager_Get_Current_Task_Id(void);
 uint32_t Kernel_Task_Get_Wake_Time_By_Id(uint32_t id);
 

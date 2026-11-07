@@ -80,7 +80,7 @@ static void     prflag(uint32_t cond, char const* name);
 static __attribute__((used))
 uint32_t sSVC_GetStartTaskSp(void)
 {
-    KernelTcb_t const* tcb = (KernelTcb_t const*)TaskManager_Get_Current_Task();
+    KernelTcb_t const* tcb = TaskManager_Get_Current_Task();
     return (uint32_t)tcb->sp;
 }
 
@@ -142,7 +142,7 @@ void sSVC_SystemCall(int32_t* sp)
 static __attribute__((used))
 uint32_t sPendSV_SwitchContext(uint32_t psp)
 {
-    KernelTcb_t* tcb = (KernelTcb_t*)TaskManager_Get_Current_Task();
+    KernelTcb_t* tcb = TaskManager_Get_Current_Task();
     tcb->sp = (uint32_t*)psp;
 
     // 스택 바닥의 canary가 깨졌으면 오버플로
@@ -153,7 +153,7 @@ uint32_t sPendSV_SwitchContext(uint32_t psp)
     }
 
     TaskManager_Scheduler();
-    tcb = (KernelTcb_t*)TaskManager_Get_Current_Task();
+    tcb = TaskManager_Get_Current_Task();
     return (uint32_t)tcb->sp;
 }
 
@@ -240,7 +240,7 @@ void sFaultDump(uint32_t* sp)
 
     if (sp_sel)
     {
-        int32_t const task_id = (int32_t)((KernelTcb_t const*)TaskManager_Get_Current_Task())->id;
+        int32_t const task_id = (int32_t)TaskManager_Get_Current_Task()->id;
         printf("Task ID: %ld\r\n", task_id);
 
         printf("\r\nTask Stack Info:\r\n");
@@ -268,7 +268,7 @@ void sStackOverflow_Dump(uint32_t* sp)
     printf("\r\n[[[[[[[[[[[[[[ KERNEL PANIC ]]]]]]]]]]]]]]\r\n");
     printf("\r\n=========  TASK STACK OVERFLOW  ==========\r\n");
 
-    int32_t const task_id = (int32_t)((KernelTcb_t const*)TaskManager_Get_Current_Task())->id;
+    int32_t const task_id = (int32_t)TaskManager_Get_Current_Task()->id;
     printf("Task ID: %ld\r\n", task_id);
 
     printf("\r\nTask Stack Info:\r\n");

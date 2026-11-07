@@ -3,15 +3,13 @@
 
 #include "Types.h"
 
+#include <type_traits>
+
 class Task
 {
 private:
-    uint32_t* m_stack_pointer;
-    uint8_t* m_stack_base;
-    int32_t m_time_slice;
-    uint32_t m_wake_time;
-    KernelTaskState_t m_state;
-    uint32_t m_id;
+    // Port에서 포인터(KernelTcb_t*)로 접근하는 영역이므로 반드시 첫 멤버여야 함
+    KernelTcb_t m_tcb;
 
     // 우선순위
     uint32_t m_priority; // 상속으로 바뀔 수 있는 실시간 우선순위
@@ -72,6 +70,10 @@ public:
     // 조회
     uint32_t GetId(void) const;
     KernelTaskState_t GetState(void) const;
+    KernelTcb_t* GetTcb(void) { return &m_tcb; }
 };
+
+// standard-layout 클래스는 첫 멤버가 오프셋 0에 놓이므로 m_tcb를 첫 멤버로 유지하는 한 Task* 를 KernelTcb_t* 로 그대로 사용 가능
+static_assert(std::is_standard_layout_v<Task>, "Task must be standard-layout");
 
 #endif // KERNEL_INTERNAL_TASK_H_
