@@ -15,9 +15,6 @@ private:
     uint32_t m_priority; // 상속으로 바뀔 수 있는 실시간 우선순위
     uint32_t m_base_priority; // 생성시 fix되는 기본 우선순위
 
-    // ready 큐 링크 (PriorityQueue가 사용)
-    Task* m_next_task{nullptr};
-
     // 상태 전이 테이블과 액션
     typedef struct KernelEventActionTable
     {
@@ -62,10 +59,6 @@ public:
     void InheritPriority(uint32_t to); // 현재만 변경
     void RestorePriority(void); // 현재 = base
     uint32_t GetPriority(void) const;
-
-    // ready 큐 링크
-    void SetNextTask(Task* task);
-    Task* GetNextTask(void) const;
 
     // 조회
     uint32_t GetId(void) const;

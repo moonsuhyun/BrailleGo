@@ -135,7 +135,7 @@ void TaskManager::MutexWait(uint32_t owner_id)
     {
         if (m_ready_queue.Remove(&m_task_list.at(owner_id)))
         {
-            m_ready_queue.Push(&m_task_list.at(owner_id), current_priority);
+            m_ready_queue.PushBack(&m_task_list.at(owner_id), current_priority);
         }
         m_task_list.at(owner_id).InheritPriority(current_priority);
     }
@@ -160,7 +160,7 @@ void TaskManager::SemWake(Task* next)
 
 void TaskManager::PushToReadyById(uint32_t id)
 {
-    m_ready_queue.Push(&m_task_list.at(id));
+    m_ready_queue.PushBack(&m_task_list.at(id));
 }
 
 __attribute ((noreturn))

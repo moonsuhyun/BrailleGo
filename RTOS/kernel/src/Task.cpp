@@ -8,31 +8,26 @@
 #include "PortCore.h"
 #include "TaskManager.hpp"
 
-void Task::Init(uint32_t* stack_pointer, uint8_t* stack_base, uint32_t id)
+void Task::Init(uint32_t* const stack_pointer, uint8_t* const stack_base, uint32_t const id)
 {
-    m_tcb.sp = stack_pointer - sizeof(TaskStackFrame_t) / 4;
+    m_tcb.sp = stack_pointer - (sizeof(TaskStackFrame_t) / 4U);
     m_tcb.stack_base = stack_base;
     m_tcb.id = id;
     memset(m_tcb.stack_base, 0, TASK_STACK_SIZE);
-    *((int32_t*)m_tcb.stack_base) = STACK_CANARY_VALUE;
+    *reinterpret_cast<uint32_t*>(m_tcb.stack_base) = STACK_CANARY_VALUE;
     m_tcb.wake_time = 0;
     m_tcb.state = TASK_TERMINATED;
 }
 
-void Task::SetProgramCounter(uint32_t wrapper, uint32_t pc, void* arg)
+void Task::SetProgramCounter(uint32_t const wrapper, uint32_t const pc, void* const arg)
 {
-    TaskStackFrame_t* task_frame = (TaskStackFrame_t*)m_tcb.sp;
+    auto* task_frame = reinterpret_cast<TaskStackFrame_t*>(m_tcb.sp);
     Port_Task_Create(task_frame, wrapper, pc, arg);
 }
 
-//void Task::SetStackFrame(const TaskStackFrame_t& frame) {
-//	TaskStackFrame_t* task_frame = (TaskStackFrame_t*)m_tcb.sp;
-//	*task_frame = frame;
-//}
-
-void Task::SetNextState(KernelTaskEvent_t event)
+void Task::SetNextState(KernelTaskEvent_t const event)
 {
-    KernelEventActionTable_t table[] = {
+    static KernelEventActionTable_t constexpr table[] = {
         {TASK_READY, EVENT_SCHEDULE, &Task::readySchedule, TASK_RUNNING},
         {TASK_RUNNING, EVENT_YIELD, &Task::runningYield, TASK_READY},
         {TASK_RUNNING, EVENT_DELAY, &Task::runningDelay, TASK_BLOCKED_DELAY},
@@ -47,20 +42,24 @@ void Task::SetNextState(KernelTaskEvent_t event)
         {TASK_INIT_READY, EVENT_SCHEDULE, &Task::initSchedule, TASK_INIT_RUNNING},
         {TASK_INIT_RUNNING, EVENT_YIELD, &Task::initYield, TASK_INIT_READY},
     };
-    for (uint32_t i = 0; i < sizeof(table) / sizeof(table[0]); i++)
+
+    for (auto const& [current_state, condition, action, next_state] : table)
     {
-        if (m_tcb.state == table[i].current_state && event == table[i].event)
+        if ((m_tcb.state == current_state) && (condition == event))
         {
             Port_Core_Disable_PendSV();
-            m_tcb.state = table[i].next_state;
-            if (table[i].action != nullptr) (this->*table[i].action)();
+            m_tcb.state = next_state;
+            if (action != nullptr)
+            {
+                (this->*action)();
+            }
             Port_Core_Enable_PendSV();
             break;
         }
     }
 }
 
-void Task::SetDelayTime(uint32_t ms)
+void Task::SetDelayTime(uint32_t const ms)
 {
     m_tcb.wake_time = BSP_Get_Tick() + ms;
 }
@@ -74,13 +73,11 @@ void Task::readySchedule(void)
 {
     TaskManager& task_manager = TaskManager::sGetInstance();
     m_tcb.time_slice = TIME_SLICE_QUANTUM;
-    // Kernel_TaskQ_Dequeue(TASK_READY, nullptr);
     task_manager.SetRunningTaskID(m_tcb.id);
 }
 
 void Task::runningYield(void)
 {
-    // Kernel_TaskQ_Enqueue(TASK_READY, m_tcb.id);
     TaskManager& task_manager = TaskManager::sGetInstance();
     task_manager.PushToReadyById(m_tcb.id);
     Port_Core_Trigger_PendSV();
@@ -108,9 +105,6 @@ void Task::suspendResume(void)
 
 void Task::runningTerminate(void)
 {
-    // TaskManager& task_manager = TaskManager::sGetInstance();
-    // task_manager.Scheduler();
-    // Port_Task_Start();
     Port_Core_Trigger_PendSV();
 }
 
@@ -138,8 +132,7 @@ void Task::runningWait()
 
 bool Task::IsDelayTimeOver(void) const
 {
-    if (m_tcb.wake_time < BSP_Get_Tick()) return true;
-    return false;
+    return m_tcb.wake_time < BSP_Get_Tick();
 }
 
 uint32_t Task::GetId() const
@@ -150,16 +143,6 @@ uint32_t Task::GetId() const
 uint32_t Task::GetPriority() const
 {
     return m_priority;
-}
-
-Task* Task::GetNextTask() const
-{
-    return m_next_task;
-}
-
-void Task::SetNextTask(Task* task)
-{
-    m_next_task = task;
 }
 
 void Task::SetPriority(uint32_t priority)
@@ -187,7 +170,9 @@ void Task::DecreaseTimeSlice()
 {
     if (this->m_tcb.state == TASK_RUNNING)
     {
-        if (m_tcb.time_slice-- < 0)
+        int32_t const remaining = m_tcb.time_slice;
+        --m_tcb.time_slice;
+        if (remaining < 0)
         {
             this->SetNextState(EVENT_YIELD);
         }

@@ -9,63 +9,91 @@ bool PriorityQueue::IsEmpty() const
     return m_bitmap == 0;
 }
 
-void PriorityQueue::Push(Task* task)
+void PriorityQueue::PushBack(Task* task)
 {
-    uint32_t priority = task->GetPriority();
-    Push(task, priority);
+    PushBack(task, task->GetPriority());
 }
 
-void PriorityQueue::Push(Task* task, uint32_t priority)
+void PriorityQueue::PushBack(Task* task, uint32_t const priority)
 {
-    Node& node = m_bucket[priority];
+    auto& [head, tail] = m_bucket[priority];
 
-    task->SetNextTask(nullptr);
+    nextOf(task) = nullptr;
 
-    if (!node.head)
+    if (head == nullptr)
     {
-        node.head = node.tail = task;
+        head = tail = task;
         set_bit(priority);
-    } else
+    }
+    else
     {
-        node.tail->SetNextTask(task);
-        node.tail = task;
+        nextOf(tail) = task;
+        tail = task;
     }
 }
 
 Task* PriorityQueue::Pop()
 {
-    if (m_bitmap == 0) return nullptr;
-    uint32_t priority = getHighestPriorityIndex();
-    Node& node = m_bucket[priority];
-    Task* task = node.head;
-    node.head = task->GetNextTask();
-    if (!node.head)
+    Task* task = nullptr;
+
+    if (m_bitmap != 0U)
     {
-        node.tail = nullptr;
-        clr_bit(priority);
+        uint32_t const priority = getHighestPriorityIndex();
+        auto& [head, tail] = m_bucket[priority];
+
+        task = head;
+        head = nextOf(task);
+
+        if (head == nullptr)
+        {
+            tail = nullptr;
+            clr_bit(priority);
+        }
+
+        nextOf(task) = nullptr;
     }
-    task->SetNextTask(nullptr);
+
     return task;
 }
 
-bool PriorityQueue::Remove(Task* task)
+bool PriorityQueue::Remove(Task const* task)
 {
-    uint32_t priority = task->GetPriority();
-    Node& node = m_bucket[priority];
-    Task* prev_task = nullptr;
+    uint32_t const priority = task->GetPriority();
+    auto& [head, tail] = m_bucket[priority];
 
-    for (Task* current_task = node.head; current_task; current_task = current_task->GetNextTask())
+    Task* prev = nullptr;
+    bool result = false;
+
+    for (Task* cur = head; cur; cur = nextOf(cur))
     {
-        if (current_task == task)
+        if (cur == task)
         {
-            if (prev_task) prev_task->SetNextTask(current_task->GetNextTask());
-            else node.head = current_task->GetNextTask();
-            if (node.tail == current_task) node.tail = prev_task;
-            if (!node.head) clr_bit(priority);
-            current_task->SetNextTask(nullptr);
-            return true;
+            if (prev != nullptr)
+            {
+                nextOf(prev) = nextOf(cur);
+            }
+            else
+            {
+                head = nextOf(cur);
+            }
+
+            if (tail == cur)
+            {
+                tail = prev;
+            }
+
+            if (head == nullptr)
+            {
+                clr_bit(priority);
+            }
+
+            nextOf(cur) = nullptr;
+            result = true;
+            break;
         }
-        prev_task = current_task;
+
+        prev = cur;
     }
-    return false;
+
+    return result;
 }

@@ -29,7 +29,7 @@ int32_t Mutex::Lock()
         {
             // waiting list 추가 및 상태 전이
             m_waiting_count++;
-            m_waiting_list.Push(current_task);
+            m_waiting_list.PushBack(current_task);
             task_manager.MutexWait(m_owner);
         }
     }
@@ -40,6 +40,7 @@ int32_t Mutex::Lock()
 int32_t Mutex::Unlock()
 {
     int32_t result = 0;
+
     if (m_locked)
     {
         TaskManager& task_manager = TaskManager::sGetInstance();
