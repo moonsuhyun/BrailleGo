@@ -10,6 +10,7 @@
 #include "mnist_model.h"
 #include "Kernel.h"
 #include "config.h"
+#include "macro.h"
 
 #include <stdint.h>
 #include <stdio.h>
@@ -174,6 +175,54 @@ static void sCanSendCmd(char const* args)
     Mutex_Unlock(MUTEX_UART);
 }
 
+// Shell command: can burst <n> [hex id] e.g., canburst 32 123
+static void sCanBurstCmd(char const* args)
+{
+    char* end;
+    uint32_t const n = (uint32_t)strtoul(args, &end, 10);
+    if (end == args || n == 0U)
+    {
+        SCOPED_LOCK(MUTEX_UART,
+            printf("[SH] usage: can burst <n> [id]\r\n");
+            );
+        return;
+    }
+
+    CanFrame_t f = {0};
+    char const* p = end;
+    f.id = (uint32_t)strtoul(p, &end, 16);
+    if (end == p) f.id = 0x100U;
+    f.ext = (f.id > 0x7FFU);
+    f.dlc = 1U;
+
+    uint32_t const drop_before = CAN_GetRxDropCount();
+    uint32_t const t0          = SysTick_GetTick();
+    uint32_t sent              = 0U;
+
+    // NOTE: don't make blocking calls such as printf or Delay inside a loop
+    for (uint32_t i = 0; i < n; i++)
+    {
+        f.data[0] = (uint8_t)i;
+
+        if (CAN_GetInitStatus() != 0) break;
+
+        // -1: 3 mailboxes are full; busy-retry until empty
+        while (CAN_Send(&f) < 0) { __asm volatile("nop"); }
+        sent++;
+    }
+
+    // Wait until transmission of the last frame is finished and the ISR empties FIFO0
+    while (CAN_GetPendingCount() > 0) { __asm volatile("nop"); }
+
+    uint32_t const t1         = SysTick_GetTick();
+    uint32_t const drop_after = CAN_GetRxDropCount();
+
+    SCOPED_LOCK(MUTEX_UART,
+        printf("[SH] can burst id=0x%lX sent=%lu/%lu elapsed=%lu ms, drop=%lu (+%lu)\r\n",
+           f.id, sent, n, t1 - t0, drop_after, drop_after - drop_before);
+       );
+}
+
 void Task_Shell(void* arg)
 {
     g_img_sem = Semaphore_Create(0);
@@ -189,7 +238,7 @@ void Task_Shell(void* arg)
         if (strcmp(line, "help") == 0)
         {
             Mutex_Lock(MUTEX_UART);
-            printf("[SH] commands: help, recv, stat, can <id> [b0 .. b7]\r\n");
+            printf("[SH] commands: help, recv, stat, can <id> [b0 .. b7], can burst <n> [id]\r\n");
             Mutex_Unlock(MUTEX_UART);
         }
         else if (strcmp(line, "recv") == 0)
@@ -206,6 +255,10 @@ void Task_Shell(void* arg)
             {
                 Semaphore_Signal(g_buf_sem);
             }
+        }
+        else if (strncmp(line, "can burst ", 10) == 0)
+        {
+            sCanBurstCmd(line + 10);
         }
         else if (strncmp(line, "can ", 4) == 0)
         {
@@ -280,7 +333,7 @@ void Task_CanRx(void* arg)
     {
         if (CAN_ReceiveBlocking(&f) <= 0)
         {
-            Task_Delay(1000); /* CAN not initialised: back off */
+            Task_Delay(1000); /* CAN not initialized: back off */
             continue;
         }
 
