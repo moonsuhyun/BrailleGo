@@ -33,7 +33,7 @@ public:
 	virtual ~TaskManager();
 	// void Init(void);
 	void Init(KernelTaskFunc_t init_task);
-	uint32_t TaskCreate(KernelTaskFunc_t start_func, void* arg, uint32_t priority);
+	int32_t  TaskCreate(KernelTaskFunc_t start_func, void* arg, uint32_t priority); // 태스크 ID, 실패 시 음수
 	void TaskYield(void);
 	void TaskDelay(uint32_t ms);
 	void TaskTerminate(void);

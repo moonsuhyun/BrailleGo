@@ -66,7 +66,7 @@ extern "C" {
 // naked 핸들러에서 호출되는 C 헬퍼
 static uint32_t sSVC_GetStartTaskSp(void);
 static uint32_t sPendSV_SwitchContext(uint32_t psp);
-static void     sSVC_SystemCall(uint32_t* sp);
+static void     sSVC_SystemCall(int32_t* sp);
 // fault dump; 호출 이후 Handler로 복귀하지 않음
 static void     sFaultDump(uint32_t* sp);
 static void     sStackOverflow_Dump(uint32_t* sp);
@@ -86,15 +86,15 @@ uint32_t sSVC_GetStartTaskSp(void)
 
 // SVC#1: 커널의 시스템 콜 호출
 static __attribute__((used))
-void sSVC_SystemCall(uint32_t* sp)
+void sSVC_SystemCall(int32_t* sp)
 {
     // arguments
-    uint32_t const sysno = sp[0];
-    uint32_t const arg0 = sp[1];
-    uint32_t const arg1 = sp[2];
-    uint32_t const arg2 = sp[3];
+    int32_t const sysno = sp[0];
+    int32_t const arg0  = sp[1];
+    int32_t const arg1  = sp[2];
+    int32_t const arg2  = sp[3];
 
-    int32_t ret = -ENOSYS;
+    int32_t ret;
 
     switch (sysno)
     {
@@ -128,10 +128,12 @@ void sSVC_SystemCall(uint32_t* sp)
     case SC_SEMGETCNT:
         ret = Kernel_Semaphore_GetCount(arg0);
         break;
+    default:
+        ret = -ENOSYS;
     }
 
     // return
-    sp[0] = (uint32_t)ret;
+    sp[0] = ret;
 
     __enable_irq();
 }

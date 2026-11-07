@@ -8,6 +8,8 @@
 #ifndef PORT_PORTCORE_H_
 #define PORT_PORTCORE_H_
 
+#include <stdint.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -23,7 +25,7 @@ void Port_Core_Disable_PendSV(void);
 void Port_Core_Wait_For_Interrupt(void);
 void Port_Core_Trigger_PendSV(void);
 
-int Port_Core_SVC_Call(int sysno, void* a0, void* a1, void* a2);
+int32_t Port_Core_SVC_Call(int32_t sysno, void* a0, void* a1, void* a2);
 
 #ifdef __cplusplus
 }

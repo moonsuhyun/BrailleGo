@@ -52,7 +52,7 @@ void Kernel_Start(KernelTaskFunc_t init_task)
     }
 }
 
-uint32_t Task_Create(void (*start_func)(void*), void* arg, uint32_t priority)
+int32_t Task_Create(void (*start_func)(void*), void* arg, uint32_t priority)
 {
     return Port_Core_SVC_Call(SC_CREATE, (void*)start_func, (void*)arg, (void*)priority);
 }
@@ -87,12 +87,12 @@ SemHandle_t Semaphore_Create(int32_t initial_count)
     return Port_Core_SVC_Call(SC_SEMCREATE, (void*)initial_count, NULL, NULL);
 }
 
-uint32_t Semaphore_Wait(SemHandle_t h)
+int32_t Semaphore_Wait(SemHandle_t h)
 {
     return Port_Core_SVC_Call(SC_SEMWAIT, (void*)h, NULL, NULL);
 }
 
-uint32_t Semaphore_Signal(SemHandle_t h)
+int32_t Semaphore_Signal(SemHandle_t h)
 {
     return Port_Core_SVC_Call(SC_SEMSIGNAL, (void*)h, NULL, NULL);
 }

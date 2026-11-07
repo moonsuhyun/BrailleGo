@@ -58,7 +58,7 @@ typedef struct
 typedef void (*KernelTaskFunc_t)(void*);
 
 void Kernel_Start(KernelTaskFunc_t init_task);
-uint32_t Task_Create(void (*start_func)(void*), void* arg, uint32_t priority);
+int32_t Task_Create(void (*start_func)(void*), void* arg, uint32_t priority); // 태스크 ID, 실패 시 음수
 void Task_Yield(void);
 void Task_Delay(uint32_t ms);
 void Task_Terminate();
@@ -66,9 +66,9 @@ void Task_Terminate();
 void Mutex_Lock(MutexType_t mutex_type);
 void Mutex_Unlock(MutexType_t mutex_type);
 
-SemHandle_t Semaphore_Create(int32_t initial_count);
-uint32_t Semaphore_Wait(SemHandle_t h);
-uint32_t Semaphore_Signal(SemHandle_t h);
+SemHandle_t Semaphore_Create(int32_t initial_count); // 핸들, 실패 시 음수
+int32_t Semaphore_Wait(SemHandle_t h);               // 처리 후 카운트, 실패 시 음수
+int32_t Semaphore_Signal(SemHandle_t h);
 int32_t Semaphore_GetCount(SemHandle_t h);
 
 uint32_t SysTick_GetTick(void);

@@ -9,10 +9,13 @@
 extern "C" {
 #endif
 
-uint32_t Kernel_Semaphore_Create(int32_t initial_count);
-uint32_t Kernel_Semaphore_Wait(uint32_t h);
-uint32_t Kernel_Semaphore_Signal(uint32_t h);
-uint32_t Kernel_Semaphore_GetCount(uint32_t h);
+#include <stdint.h>
+
+// 반환값: 핸들 또는 카운트, 실패 시 음수(-errno)
+int32_t Kernel_Semaphore_Create(int32_t initial_count);
+int32_t Kernel_Semaphore_Wait(int32_t h);
+int32_t Kernel_Semaphore_Signal(int32_t h);
+int32_t Kernel_Semaphore_GetCount(int32_t h);
 
 #ifdef __cplusplus
 }

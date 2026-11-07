@@ -19,10 +19,10 @@ private:
         PriorityQueue m_waiting_list{};
         static std::array<Mutex, MUTEX_TYPE_NUM> m_mutexes;
 public:
-        uint32_t Lock();
-        uint32_t Unlock();
-        static uint32_t MutexLock(MutexType_t mutex_type);
-        static uint32_t MutexUnlock(MutexType_t mutex_type);
+        int32_t Lock();
+        int32_t Unlock();
+        static int32_t MutexLock(MutexType_t mutex_type);
+        static int32_t MutexUnlock(MutexType_t mutex_type);
 };
 
 #endif // KERNEL_INTERNAL_MUTEX_HPP_

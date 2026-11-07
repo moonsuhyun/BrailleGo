@@ -83,7 +83,7 @@ uint32_t TaskManager::initTaskCreate(KernelTaskFunc_t start_func, void* arg)
 	return task_id;
 }
 
-uint32_t TaskManager::TaskCreate(KernelTaskFunc_t start_func, void* arg, uint32_t priority)
+int32_t TaskManager::TaskCreate(KernelTaskFunc_t start_func, void* arg, uint32_t priority)
 {
 	uint32_t task_id = m_allocated_task_count++;
 
@@ -94,7 +94,7 @@ uint32_t TaskManager::TaskCreate(KernelTaskFunc_t start_func, void* arg, uint32_
 	new_task.SetProgramCounter((uint32_t)&TaskManager::sTaskWrapper, (uint32_t)start_func, arg);
 	new_task.SetNextState(EVENT_CREATE);
 
-	return task_id;
+	return static_cast<int32_t>(task_id);
 }
 
 void TaskManager::TaskYield(void) {

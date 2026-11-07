@@ -50,12 +50,12 @@ inline void Port_Core_Trigger_PendSV(void) {
 	SCB->ICSR = SCB_ICSR_PENDSVSET_Msk;
 }
 
-int Port_Core_SVC_Call(int sysno, void* a0, void* a1, void* a2)
+int32_t Port_Core_SVC_Call(int32_t sysno, void* a0, void* a1, void* a2)
 {
-	register int   r0 __asm("r0") = sysno;
-	register void *r1 __asm("r1") = a0;
-	register void *r2 __asm("r2") = a1;
-	register void *r3 __asm("r3") = a2;
+	register int32_t r0 __asm("r0") = sysno; // in: sysno, out: 반환값
+	register void* r1   __asm("r1") = a0;
+	register void* r2   __asm("r2") = a1;
+	register void* r3   __asm("r3") = a2;
 
 	__asm volatile(
 		"svc 1"
