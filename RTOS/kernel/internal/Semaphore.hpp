@@ -6,13 +6,13 @@
 #include "PriorityQueue.hpp"
 #include <array>
 
-using SemHandle = uint32_t;
+using SemHandle = int32_t; // 음수 = 무효 핸들
 
 class Semaphore
 {
 private:
     bool     m_used{false};
-    uint32_t m_count{0};
+    int32_t  m_count{0};
     uint32_t m_waiting_count{0};
     PriorityQueue m_waiting_list{};
     static std::array<Semaphore, MAX_SEMAPHORE_NUM> s_sems;
@@ -21,9 +21,10 @@ public:
     static SemHandle Create(int32_t initial_count);
     static void      Destroy(SemHandle h);
 
-    static uint32_t Wait(SemHandle h);
-    static uint32_t Signal(SemHandle h);
-    static uint32_t GetCount(SemHandle h);
+    // 반환값: 처리 후 카운트, 무효 핸들이면 -EINVAL
+    static int32_t Wait(SemHandle h);
+    static int32_t Signal(SemHandle h);
+    static int32_t GetCount(SemHandle h);
 };
 
 #endif // KERNEL_INTERNAL_SEMAPHORE_HPP_

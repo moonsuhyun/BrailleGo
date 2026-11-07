@@ -44,12 +44,21 @@ typedef enum MutexType
     MUTEX_TYPE_NUM
 } MutexType_t;
 
-typedef uint32_t SemHandle_t;
+typedef int32_t SemHandle_t;
+
+typedef struct
+{
+    uint32_t id;      // 11-bit (standard) or 29-bit (extended) identifier
+    uint8_t  dlc;     // 0..8
+    uint8_t  data[8];
+    bool     ext;     // extended (29-bit) frame
+    bool     rtr;     // remote frame
+} CanFrame_t;
 
 typedef void (*KernelTaskFunc_t)(void*);
 
 void Kernel_Start(KernelTaskFunc_t init_task);
-uint32_t Task_Create(void (*start_func)(void*), void* arg, uint32_t priority);
+int32_t Task_Create(void (*start_func)(void*), void* arg, uint32_t priority); // 태스크 ID, 실패 시 음수
 void Task_Yield(void);
 void Task_Delay(uint32_t ms);
 void Task_Terminate();
@@ -57,9 +66,9 @@ void Task_Terminate();
 void Mutex_Lock(MutexType_t mutex_type);
 void Mutex_Unlock(MutexType_t mutex_type);
 
-SemHandle_t Semaphore_Create(int32_t initial_count);
-uint32_t Semaphore_Wait(SemHandle_t h);
-uint32_t Semaphore_Signal(SemHandle_t h);
+SemHandle_t Semaphore_Create(int32_t initial_count); // 핸들, 실패 시 음수
+int32_t Semaphore_Wait(SemHandle_t h);               // 처리 후 카운트, 실패 시 음수
+int32_t Semaphore_Signal(SemHandle_t h);
 int32_t Semaphore_GetCount(SemHandle_t h);
 
 uint32_t SysTick_GetTick(void);
@@ -68,6 +77,12 @@ bool Kernel_Is_Running(void);
 int32_t UART_Read(uint8_t* buf, uint32_t len);
 int32_t UART_ReadLine(char* buf, uint32_t max_len);
 int32_t UART_ReadLineEx(char* buf, uint32_t max_len, void begin(void), void end(void));
+
+int32_t  CAN_Send(CanFrame_t const* frame);    // 사용한 메일박스 번호(0-2), 실패 시 음수
+int32_t  CAN_ReceiveBlocking(CanFrame_t* out); // 프레임이 올 때까지 블록
+int32_t  CAN_GetInitStatus(void);              // 0 성공, 음수는 BSP_CAN_Init 오류 코드
+uint32_t CAN_GetRxDropCount(void);             // 버퍼 부족으로 버린 수신 프레임 수
+uint32_t CAN_GetPendingCount(void);            // 송수신 대기 중인 프레임 수
 
 #ifdef __cplusplus
 }

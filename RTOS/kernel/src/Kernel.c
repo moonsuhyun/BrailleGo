@@ -7,12 +7,21 @@
 #include "BspHwInit.h"
 #include "BspSysTick.h"
 #include "BspUart.h"
+#include "BspCan.h"
 #include "PortCore.h"
 #include "PortTask.h"
 #include "TaskManager.h"
 #include <stdio.h>
 
 static bool is_initiated = false;
+
+#ifndef CAN_USE_LOOPBACK
+// 1: Silent Loopback
+// 0: Normal Mode
+#define CAN_USE_LOOPBACK 1
+#endif
+
+static int32_t g_can_init_status = -1;
 
 void Kernel_Start(KernelTaskFunc_t init_task)
 {
@@ -34,15 +43,18 @@ void Kernel_Start(KernelTaskFunc_t init_task)
 
         BSP_UART_Init();
 
+        g_can_init_status = BSP_CAN_Init(CAN_USE_LOOPBACK ? BSP_CAN_MODE_LOOPBACK
+                                                          : BSP_CAN_MODE_NORMAL);
+
         is_initiated = true;
 
         Port_Task_Start();
     }
 }
 
-uint32_t Task_Create(void(* start_func)(void*), void* arg, uint32_t priority)
+int32_t Task_Create(void (*start_func)(void*), void* arg, uint32_t priority)
 {
-    return Port_Core_SVC_Call(SC_CREATE, (void*)start_func, (void*)arg,  (void*)priority);
+    return Port_Core_SVC_Call(SC_CREATE, (void*)start_func, (void*)arg, (void*)priority);
 }
 
 void Task_Yield(void)
@@ -75,12 +87,12 @@ SemHandle_t Semaphore_Create(int32_t initial_count)
     return Port_Core_SVC_Call(SC_SEMCREATE, (void*)initial_count, NULL, NULL);
 }
 
-uint32_t Semaphore_Wait(SemHandle_t h)
+int32_t Semaphore_Wait(SemHandle_t h)
 {
     return Port_Core_SVC_Call(SC_SEMWAIT, (void*)h, NULL, NULL);
 }
 
-uint32_t Semaphore_Signal(SemHandle_t h)
+int32_t Semaphore_Signal(SemHandle_t h)
 {
     return Port_Core_SVC_Call(SC_SEMSIGNAL, (void*)h, NULL, NULL);
 }
@@ -103,8 +115,10 @@ bool Kernel_Is_Running(void)
 int32_t UART_Read(uint8_t* buf, uint32_t len)
 {
     uint8_t ch;
-    for (size_t i = 0; i < len; ++i) {
-        if (BSP_UART_GetCharBlocking(&ch) < 0) {
+    for (size_t i = 0; i < len; ++i)
+    {
+        if (BSP_UART_GetCharBlocking(&ch) < 0)
+        {
             return -1;
         }
         buf[i] = ch;
@@ -119,33 +133,44 @@ int32_t UART_ReadLine(char* buf, uint32_t max_len)
 
     if (max_len == 0) return -1;
 
-    for (;;) {
-        if (BSP_UART_GetCharBlocking(&ch) < 0) {
+    for (;;)
+    {
+        if (BSP_UART_GetCharBlocking(&ch) < 0)
+        {
             continue;
         }
 
         // echo
-        if (ch == '\r' || ch == '\n') {
+        if (ch == '\r' || ch == '\n')
+        {
             // CR/LF
             Mutex_Lock(MUTEX_UART);
             printf("\r\n");
             Mutex_Unlock(MUTEX_UART);
             break;
-        } else if (ch == '\b' || ch == 0x7F) {
+        }
+        else if (ch == '\b' || ch == 0x7F)
+        {
             // backspace
-            if (pos > 0) {
+            if (pos > 0)
+            {
                 pos--;
                 Mutex_Lock(MUTEX_UART);
                 printf("\b \b");
                 Mutex_Unlock(MUTEX_UART);
             }
-        } else {
-            if (pos < max_len - 1) {
+        }
+        else
+        {
+            if (pos < max_len - 1)
+            {
                 buf[pos++] = (char)ch;
                 Mutex_Lock(MUTEX_UART);
-                printf("%c", ch);   // echo
+                printf("%c", ch); // echo
                 Mutex_Unlock(MUTEX_UART);
-            } else {
+            }
+            else
+            {
                 // buffer full
             }
         }
@@ -166,41 +191,82 @@ int32_t UART_ReadLineEx(char* buf, uint32_t max_len,
     uint8_t ch;
     uint8_t started = 0;
 
-    for (;;) {
+    for (;;)
+    {
         BSP_UART_GetCharBlocking(&ch);
 
-        if (drop_lf) {
+        if (drop_lf)
+        {
             drop_lf = 0;
             if (ch == '\n') continue;
         }
 
-        if (!started) {
+        if (!started)
+        {
             begin();
             Mutex_Lock(MUTEX_UART);
             started = 1;
         }
 
-        if (ch == '\r' || ch == '\n') {
+        if (ch == '\r' || ch == '\n')
+        {
             if (ch == '\r') drop_lf = 1;
             printf("\r\n");
             Mutex_Unlock(MUTEX_UART);
             end();
             break;
-        } else if (ch == '\b' || ch == 0x7F) {
+        }
+        else if (ch == '\b' || ch == 0x7F)
+        {
             // backspace
-            if (pos > 0) {
+            if (pos > 0)
+            {
                 pos--;
                 printf("\b \b");
             }
-        } else {
-            if (pos < max_len - 1) {
+        }
+        else
+        {
+            if (pos < max_len - 1)
+            {
                 buf[pos++] = (char)ch;
-                printf("%c", ch);   // echo
-            } else {
+                printf("%c", ch); // echo
+            }
+            else
+            {
                 // buffer full
             }
         }
     }
     buf[pos] = '\0';
     return (int)pos;
+}
+
+int32_t CAN_Send(CanFrame_t const* frame)
+{
+    if (g_can_init_status != 0 || frame == NULL) return -1;
+    return BSP_CAN_Transmit(frame);
+}
+
+int32_t CAN_ReceiveBlocking(CanFrame_t* out)
+{
+    if (g_can_init_status != 0 || out == NULL) return -1;
+    return BSP_CAN_GetFrameBlocking(out);
+}
+
+int32_t CAN_GetInitStatus(void)
+{
+    return g_can_init_status;
+}
+
+uint32_t CAN_GetRxDropCount(void)
+{
+    return BSP_CAN_GetRxDropCount();
+}
+
+uint32_t CAN_GetPendingCount(void)
+{
+    if (g_can_init_status != 0) return 0U;
+    uint32_t const count = BSP_CAN_GetTxPendingCount() + BSP_CAN_GetRxPendingCount();
+    return count;
 }
