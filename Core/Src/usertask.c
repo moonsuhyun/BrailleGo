@@ -9,6 +9,8 @@
 
 #include "mnist_model.h"
 #include "Kernel.h"
+#include "config.h"
+
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -28,10 +30,10 @@ static uint8_t g_img_buf[2][MNIST_IMG_SIZE];
 static SemHandle_t g_img_sem = -1;
 static SemHandle_t g_buf_sem = -1;
 
-static int g_write_idx = 0;
-static int g_read_idx  = 0;
+static int32_t g_write_idx = 0;
+static int32_t g_read_idx = 0;
 
-static int g_img = 0;
+static int32_t g_img = 0;
 
 static void busy_loop(uint32_t ms)
 {
@@ -58,12 +60,12 @@ static int32_t sImgReceiver(void)
     uint8_t byte;
     ImgRxState_t rx_state = IR_WAIT_M;
 
-    for (;;) {
-
+    for (;;)
+    {
         UART_Read(&byte, 1);
 
-        switch (rx_state) {
-
+        switch (rx_state)
+        {
         case IR_WAIT_M:
             if (byte == 'M') rx_state = IR_WAIT_N;
             break;
@@ -90,7 +92,8 @@ static int32_t sImgReceiver(void)
                 rx_state = IR_RECV_DATA;
                 idx = 0;
                 checksum = 0;
-            } else
+            }
+            else
             {
                 Mutex_Lock(MUTEX_UART);
                 printf("[SH] image height error\r\n");
@@ -105,17 +108,19 @@ static int32_t sImgReceiver(void)
             Mutex_Unlock(MUTEX_UART);
             g_img_buf[g_write_idx][idx++] = byte;
             checksum ^= byte;
-            if (idx >= MNIST_IMG_SIZE) {
+            if (idx >= MNIST_IMG_SIZE)
+            {
                 rx_state = IR_RECV_CHK;
             }
             break;
 
         case IR_RECV_CHK:
-            if (checksum == byte) {
+            if (checksum == byte)
+            {
                 Semaphore_Signal(g_img_sem);
                 g_img++;
                 Mutex_Lock(MUTEX_UART);
-                printf("[SH] image received OK buf=%d, tick=%u\r\n", g_write_idx, SysTick_GetTick());
+                printf("[SH] image received OK buf=%ld, tick=%lu\r\n", g_write_idx, SysTick_GetTick());
                 Mutex_Unlock(MUTEX_UART);
                 g_write_idx ^= 1;
                 rx_state = IR_WAIT_M;
@@ -131,13 +136,14 @@ static int32_t sImgReceiver(void)
 }
 
 // Shell command: can <hex id> [hex byte ...] e.g., can 123 11 22 33
-static void sCanSendCmd(char* args)
+static void sCanSendCmd(char const* args)
 {
     CanFrame_t f = {0};
     char* end;
 
     f.id = (uint32_t)strtoul(args, &end, 16);
-    if (end == args) {
+    if (end == args)
+    {
         Mutex_Lock(MUTEX_UART);
         printf("[SH] usage: can <id> [b0 .. b7]\r\n");
         Mutex_Unlock(MUTEX_UART);
@@ -145,19 +151,23 @@ static void sCanSendCmd(char* args)
     }
     f.ext = (f.id > 0x7FFU);
 
-    char* p = end;
-    while (f.dlc < 8U) {
-        unsigned long b = strtoul(p, &end, 16);
+    char const* p = end;
+    while (f.dlc < 8U)
+    {
+        uint32_t const b = strtoul(p, &end, 16);
         if (end == p) break;
         f.data[f.dlc++] = (uint8_t)b;
         p = end;
     }
 
-    int32_t mbx = CAN_Send(&f);
+    int32_t const mbx = CAN_Send(&f);
     Mutex_Lock(MUTEX_UART);
-    if (mbx < 0) {
+    if (mbx < 0)
+    {
         printf("[SH] can send failed (init=%ld)\r\n", (long)CAN_GetInitStatus());
-    } else {
+    }
+    else
+    {
         printf("[SH] can tx id=0x%lX dlc=%u (mailbox %ld)\r\n",
                (unsigned long)f.id, f.dlc, (long)mbx);
     }
@@ -171,36 +181,44 @@ void Task_Shell(void* arg)
 
     char line[64];
 
-    for (;;) {
-
+    for (;;)
+    {
         int32_t n = UART_ReadLineEx(line, sizeof(line), shell_begin, shell_end);
         if (n <= 0) continue;
 
-        if (strcmp(line, "help") == 0) {
+        if (strcmp(line, "help") == 0)
+        {
             Mutex_Lock(MUTEX_UART);
             printf("[SH] commands: help, recv, stat, can <id> [b0 .. b7]\r\n");
             Mutex_Unlock(MUTEX_UART);
-        } else if (strcmp(line, "recv") == 0) {
+        }
+        else if (strcmp(line, "recv") == 0)
+        {
             Semaphore_Wait(g_buf_sem);
 
             Mutex_Lock(MUTEX_UART);
             printf("[SH] Ready to receive MNIST image (784 bytes)\r\n");
             Mutex_Unlock(MUTEX_UART);
 
-            int32_t result = sImgReceiver();
+            int32_t const result = sImgReceiver();
 
             if (result < 0)
             {
                 Semaphore_Signal(g_buf_sem);
             }
-
-        } else if (strncmp(line, "can ", 4) == 0) {
+        }
+        else if (strncmp(line, "can ", 4) == 0)
+        {
             sCanSendCmd(line + 4);
-        } else if (strcmp(line, "stat") == 0) {
+        }
+        else if (strcmp(line, "stat") == 0)
+        {
             Mutex_Lock(MUTEX_UART);
-            printf("[SH] tick=%u, img_ready=%d\r\n", SysTick_GetTick(), Semaphore_GetCount(g_img_sem));
+            printf("[SH] status: tick=%lu, img_ready=%ld, CAN RX drop=%lu\r\n", SysTick_GetTick(), Semaphore_GetCount(g_img_sem), CAN_GetRxDropCount());
             Mutex_Unlock(MUTEX_UART);
-        } else {
+        }
+        else
+        {
             Mutex_Lock(MUTEX_UART);
             printf("[SH] unknown cmd: %s\r\n", line);
             Mutex_Unlock(MUTEX_UART);
@@ -214,27 +232,28 @@ void Task_Inference(void* arg)
     {
         Task_Yield();
     }
-    for (;;) {
+    for (;;)
+    {
         Semaphore_Wait(g_img_sem);
         g_img--;
 
-        uint32_t t0 = SysTick_GetTick();
+        uint32_t const t0 = SysTick_GetTick();
 
-        int buf_idx = g_read_idx;
+        int32_t const buf_idx = g_read_idx;
         g_read_idx ^= 1;
 
         Mutex_Lock(MUTEX_UART);
-        printf("[IF] start inference buf=%d, tick=%u\r\n", buf_idx, t0);
+        printf("[IF] start inference buf=%ld, tick=%lu\r\n", buf_idx, t0);
         Mutex_Unlock(MUTEX_UART);
 
         busy_loop(2000);
-        int predicted = Mnist_RunInference(g_img_buf[buf_idx]);
+        int32_t const predicted = Mnist_RunInference(g_img_buf[buf_idx]);
         busy_loop(2000);
 
-        uint32_t t1 = SysTick_GetTick();
+        uint32_t const t1 = SysTick_GetTick();
 
         Mutex_Lock(MUTEX_UART);
-        printf("[IF] done. result=%d, elapsed=%u ms\r\n", predicted, t1 - t0);
+        printf("[IF] done. result=%lu, elapsed=%lu ms\r\n", predicted, t1 - t0);
         Mutex_Unlock(MUTEX_UART);
 
         Semaphore_Signal(g_buf_sem);
@@ -243,11 +262,12 @@ void Task_Inference(void* arg)
 
 void Task_Heartbeat(void* arg)
 {
-    for (;;) {
-        Task_Delay(1000);
+    for (;;)
+    {
+        Task_Delay(HEARTBEAT_FREQ_MS);
 
         Mutex_Lock(MUTEX_UART);
-        printf("[HB] tick=%u, img_ready=%d\r\n", SysTick_GetTick(), g_img);
+        printf("[HB] tick=%lu\r\n", SysTick_GetTick());
         Mutex_Unlock(MUTEX_UART);
     }
 }
@@ -256,16 +276,19 @@ void Task_CanRx(void* arg)
 {
     CanFrame_t f;
 
-    for (;;) {
-        if (CAN_ReceiveBlocking(&f) <= 0) {
-            Task_Delay(1000);               /* CAN not initialised: back off */
+    for (;;)
+    {
+        if (CAN_ReceiveBlocking(&f) <= 0)
+        {
+            Task_Delay(1000); /* CAN not initialised: back off */
             continue;
         }
 
         Mutex_Lock(MUTEX_UART);
         printf("[CAN] rx id=0x%lX%s%s dlc=%u data=",
-               (unsigned long)f.id, f.ext ? "(ext)" : "", f.rtr ? "(rtr)" : "", f.dlc);
-        for (uint8_t i = 0; i < f.dlc; i++) {
+               (uint32_t)f.id, f.ext ? "(ext)" : "", f.rtr ? "(rtr)" : "", f.dlc);
+        for (uint8_t i = 0; i < f.dlc; i++)
+        {
             printf("%02X ", f.data[i]);
         }
         printf("\r\n");

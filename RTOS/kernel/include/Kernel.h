@@ -44,7 +44,7 @@ typedef enum MutexType
     MUTEX_TYPE_NUM
 } MutexType_t;
 
-typedef uint32_t SemHandle_t;
+typedef int32_t SemHandle_t;
 
 typedef struct
 {
