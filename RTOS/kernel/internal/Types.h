@@ -17,8 +17,6 @@
 #define NULL (void*)0
 #endif
 #define NOT_ENOUGH_TASK_NUM (-1)
-//#define MAX_TASK_NUM (TASK_STACK_AREA_SIZE / TASK_STACK_SIZE)
-// #define MAX_TASK_NUM 3
 #define TIME_SLICE_QUANTUM 10
 #define STACK_CANARY_VALUE 0xDEADBEEFU
 #define INIT_TASK_ID 0U
@@ -51,7 +49,6 @@ typedef enum KernelTaskEvent {
 	EVENT_YIELD,
 	EVENT_DELAY,
 	EVENT_WAIT,
-	EVENT_SEMAPHORE,
 	EVENT_UNBLOCK,
 	EVENT_SCHEDULE,
 	EVENT_SUSPEND,
@@ -77,11 +74,5 @@ typedef struct TaskQIterator {
 	bool is_initialized;
 	uint32_t snapshot[MAX_TASK_NUM];
 } TaskQIterator_t;
-
-// typedef enum MutexType
-// {
-// 	MUTEX_UART,
-// 	MUTEX_TYPE_NUM
-// } MutexType_t;
 
 #endif /* KERNEL_TYPES_H_ */

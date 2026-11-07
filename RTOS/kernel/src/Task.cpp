@@ -131,12 +131,6 @@ bool Task::IsDelayTimeOver(void) const
 	return false;
 }
 
-void Task::InitIdleTask(uint32_t wrapper, uint32_t pc) {
-	TaskStackFrame_t* task_frame = (TaskStackFrame_t*)m_stack_pointer;
-	Port_Task_Create(task_frame, wrapper, pc, NULL);
-	m_state = TASK_INIT_READY;
-}
-
 uint32_t Task::GetId() const
 {
 	return m_id;

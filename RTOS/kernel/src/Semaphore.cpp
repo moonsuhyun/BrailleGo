@@ -27,15 +27,6 @@ SemHandle Semaphore::Create(int32_t initial_count)
     return -1;
 }
 
-void Semaphore::Destroy(SemHandle h)
-{
-    if (auto* sem = FromHandle(h)) {
-        sem->m_used = false;
-        sem->m_count = 0;
-        sem->m_waiting_count = 0;
-    }
-}
-
 int32_t Semaphore::Wait(SemHandle h)
 {
     Semaphore* sem = FromHandle(h);

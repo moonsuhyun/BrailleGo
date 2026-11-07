@@ -15,13 +15,15 @@ private:
     int32_t  m_count{0};
     uint32_t m_waiting_count{0};
     PriorityQueue m_waiting_list{};
+
     static std::array<Semaphore, MAX_SEMAPHORE_NUM> s_sems;
     static Semaphore* FromHandle(SemHandle h);
-public:
-    static SemHandle Create(int32_t initial_count);
-    static void      Destroy(SemHandle h);
 
-    // 반환값: 처리 후 카운트, 무효 핸들이면 -EINVAL
+public:
+    // 생성: 핸들 or 실패 시 -1
+    static SemHandle Create(int32_t initial_count);
+
+    // 동작: 처리 후 카운트, 무효 핸들이면 -EINVAL
     static int32_t Wait(SemHandle h);
     static int32_t Signal(SemHandle h);
     static int32_t GetCount(SemHandle h);

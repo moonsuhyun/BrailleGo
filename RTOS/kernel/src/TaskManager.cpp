@@ -15,8 +15,6 @@
 #include "BspSysTick.h"
 #include "Types.h"
 
-TaskManager::~TaskManager() = default;
-
 Task* TaskManager::GetRunningTask(void)
 {
     return &m_task_list[m_running_task_id];
@@ -68,13 +66,6 @@ TaskManager& TaskManager::sGetInstance()
 {
     static TaskManager instance;
     return instance;
-}
-
-uint32_t TaskManager::schedulerRoundRobinAlgorithm(void)
-{
-    uint32_t task_id;
-    Kernel_TaskQ_Get_Front(TASK_READY, &task_id);
-    return task_id;
 }
 
 uint32_t TaskManager::initTaskCreate(KernelTaskFunc_t start_func, void* arg)
@@ -172,17 +163,6 @@ void TaskManager::PushToReadyById(uint32_t id)
     m_ready_queue.Push(&m_task_list.at(id));
 }
 
-void TaskManager::sIdleTask(void)
-{
-    TaskManager& task_manager = TaskManager::sGetInstance();
-    task_manager.TaskYield();
-    while (1)
-    {
-        if (!Kernel_TaskQ_Is_Empty(TASK_READY)) task_manager.TaskYield();
-        //Port_Core_Wait_For_Interrupt();
-    }
-}
-
 __attribute ((noreturn))
 void TaskManager::sTaskWrapper(void (*task_func)(void*), void* arg)
 {
@@ -202,7 +182,7 @@ Task* TaskManager_Get_Current_Task(void)
 int32_t TaskManager_Get_Current_Task_Id()
 {
     TaskManager const& task_manager = TaskManager::sGetInstance();
-    return static_cast<int32_t>(task_manager.GetRunningTaskId();)
+    return static_cast<int32_t>(task_manager.GetRunningTaskId());
 }
 
 
