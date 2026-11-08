@@ -40,7 +40,6 @@ SemHandle Semaphore::Create(int32_t const initial_count)
             auto& s = s_sems[i];
             s.m_used = true;
             s.m_count = initial_count;
-            s.m_waiting_count = 0;
             handle = i;
             break;
         }
@@ -65,10 +64,8 @@ int32_t Semaphore::Wait(SemHandle const h)
         else
         {
             TaskManager& task_manager = TaskManager::sGetInstance();
-            Task* current_task = task_manager.GetRunningTask();
 
-            sem->m_waiting_count++;
-            sem->m_waiting_list.PushBack(current_task);
+            sem->m_waiters.PushBack(task_manager.GetRunningTaskId());
             task_manager.SemWait();
 
             count = sem->m_count;
@@ -86,11 +83,10 @@ int32_t Semaphore::Signal(SemHandle const h)
 
     if (sem != nullptr)
     {
-        if (sem->m_waiting_count > 0)
+        if (!sem->m_waiters.IsEmpty())
         {
-            sem->m_waiting_count--;
-            Task* next = sem->m_waiting_list.Pop();
-            TaskManager::sGetInstance().SemWake(next);
+            int32_t const next = sem->m_waiters.PopHighest();
+            TaskManager::sGetInstance().Wake(static_cast<uint32_t>(next));
             count = sem->m_count;
         }
         else

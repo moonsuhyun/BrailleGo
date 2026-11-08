@@ -153,9 +153,14 @@ void TaskManager::SemWait(void)
     m_task_list.at(m_running_task_id).SetNextState(EVENT_WAIT);
 }
 
-void TaskManager::SemWake(Task* next)
+void TaskManager::Wake(uint32_t const id)
 {
-    next->SetNextState(EVENT_UNBLOCK);
+    m_task_list.at(id).SetNextState(EVENT_UNBLOCK);
+}
+
+uint32_t TaskManager::GetPriorityById(uint32_t const id) const
+{
+    return m_task_list.at(id).GetPriority();
 }
 
 void TaskManager::PushToReadyById(uint32_t id)

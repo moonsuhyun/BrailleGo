@@ -42,11 +42,12 @@ public:
 	void SetRunningTaskID(uint32_t id);
 	void PushToReadyById(uint32_t id);
 
-	// 동기화 객체(Mutex, Semaphore)가 호출
-	void MutexWait(uint32_t owner_id);
-	void MutexWake(Task* next);
-	void SemWait(void);
-	void SemWake(Task* next);
+	// 동기화 객체(Mutex, Semaphore, WaitList)가 호출
+	uint32_t GetPriorityById(uint32_t id) const;
+	void     Wake(uint32_t id);
+	void     MutexWait(uint32_t owner_id);
+	void     MutexWake(Task* next);
+	void     SemWait(void);
 
 	// 조회
 	Task*    GetRunningTask(void);

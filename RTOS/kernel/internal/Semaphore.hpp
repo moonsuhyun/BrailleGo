@@ -3,7 +3,8 @@
 #define KERNEL_INTERNAL_SEMAPHORE_HPP_
 
 #include "Types.h"
-#include "PriorityQueue.hpp"
+#include "WaitList.hpp"
+
 #include <array>
 
 using SemHandle = int32_t; // 음수 = 무효 핸들
@@ -13,8 +14,7 @@ class Semaphore
 private:
     bool     m_used{false};
     int32_t  m_count{0};
-    uint32_t m_waiting_count{0};
-    PriorityQueue m_waiting_list{};
+    WaitList m_waiters{};
 
     static std::array<Semaphore, MAX_SEMAPHORE_NUM> s_sems;
     static Semaphore* FromHandle(SemHandle h);
