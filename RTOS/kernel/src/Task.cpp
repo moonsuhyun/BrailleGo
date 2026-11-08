@@ -145,6 +145,11 @@ uint32_t Task::GetPriority() const
     return m_priority;
 }
 
+uint32_t Task::GetBasePriority() const
+{
+    return m_base_priority;
+}
+
 void Task::SetPriority(uint32_t priority)
 {
     m_priority = priority;

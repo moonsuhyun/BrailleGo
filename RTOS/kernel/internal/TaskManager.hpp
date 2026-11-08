@@ -42,17 +42,21 @@ public:
 	void SetRunningTaskID(uint32_t id);
 	void PushToReadyById(uint32_t id);
 
-	// 동기화 객체(Mutex, Semaphore, WaitList)가 호출
+	// 동기화 (Mutex, Semaphore, WaitList가 호출)
+	uint32_t GetRunningTaskId(void) const;
 	uint32_t GetPriorityById(uint32_t id) const;
-	void     Wake(uint32_t id);
+	uint32_t GetBasePriorityById(uint32_t id) const;
+	void     SetPriorityById(uint32_t id, uint32_t priority); // 우선순위 상속 처리
+	void     TaskWait(void); // 현재 태스크 -> BLOCKED_WAIT
+	void     TaskWake(uint32_t id); // 블록된 태스크 -> READY
+
 	void     MutexWait(uint32_t owner_id);
 	void     MutexWake(Task* next);
-	void     SemWait(void);
-
-	// 조회
 	Task*    GetRunningTask(void);
-	uint32_t GetRunningTaskId(void) const;
-	uint32_t GetWakeTimeById(uint32_t id);
+
+	// Port 접근용
+	KernelTcb_t* GetRunningTcb(void);
+	uint32_t     GetWakeTimeById(uint32_t id);
 };
 
 #endif /* KERNEL_INTERNAL_TASKMANAGER_HPP_ */

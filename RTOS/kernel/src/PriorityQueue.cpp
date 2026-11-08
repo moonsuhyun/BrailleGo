@@ -11,11 +11,7 @@ bool PriorityQueue::IsEmpty() const
 
 void PriorityQueue::PushBack(Task* task)
 {
-    PushBack(task, task->GetPriority());
-}
-
-void PriorityQueue::PushBack(Task* task, uint32_t const priority)
-{
+    uint32_t const priority = task->GetPriority();
     auto& [head, tail] = m_bucket[priority];
 
     nextOf(task) = nullptr;

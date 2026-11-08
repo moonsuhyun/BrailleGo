@@ -29,7 +29,6 @@ private:
 public:
     bool  IsEmpty(void) const;
     void  PushBack(Task* task); // task->GetPriority() 버킷의 뒤에 삽입
-    void  PushBack(Task* task, uint32_t priority); // 지정 우선순위 버킷의 뒤에 삽입
     Task* Pop(void); // 가장 높은 우선순위 버킷의 앞에서 제거
     bool  Remove(Task const* task); // task->GetPriority() 버킷에서 검색; 우선순위 변경 전에 호출해야 함
 };

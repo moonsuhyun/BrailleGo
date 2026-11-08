@@ -66,7 +66,7 @@ int32_t Semaphore::Wait(SemHandle const h)
             TaskManager& task_manager = TaskManager::sGetInstance();
 
             sem->m_waiters.PushBack(task_manager.GetRunningTaskId());
-            task_manager.SemWait();
+            task_manager.TaskWait();
 
             count = sem->m_count;
         }
@@ -86,7 +86,7 @@ int32_t Semaphore::Signal(SemHandle const h)
         if (!sem->m_waiters.IsEmpty())
         {
             int32_t const next = sem->m_waiters.PopHighest();
-            TaskManager::sGetInstance().Wake(static_cast<uint32_t>(next));
+            TaskManager::sGetInstance().TaskWake(static_cast<uint32_t>(next));
             count = sem->m_count;
         }
         else

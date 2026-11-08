@@ -126,18 +126,13 @@ void TaskManager::Scheduler(void)
     next_task->SetNextState(EVENT_SCHEDULE);
 }
 
-void TaskManager::MutexWait(uint32_t owner_id)
+void TaskManager::MutexWait(uint32_t const owner_id)
 {
     // Priority Inheritance
-    uint32_t const current_priority = GetRunningTask()->GetPriority();
-    uint32_t const owner_priority = m_task_list.at(owner_id).GetPriority();
-    if (current_priority < owner_priority)
+    uint32_t const current_priority = GetPriorityById(m_running_task_id);
+    if (current_priority < GetPriorityById(owner_id))
     {
-        if (m_ready_queue.Remove(&m_task_list.at(owner_id)))
-        {
-            m_ready_queue.PushBack(&m_task_list.at(owner_id), current_priority);
-        }
-        m_task_list.at(owner_id).InheritPriority(current_priority);
+        SetPriorityById(owner_id, current_priority);
     }
     m_task_list.at(m_running_task_id).SetNextState(EVENT_WAIT);
 }
@@ -148,12 +143,12 @@ void TaskManager::MutexWake(Task* next)
     next->SetNextState(EVENT_UNBLOCK);
 }
 
-void TaskManager::SemWait(void)
+void TaskManager::TaskWait(void)
 {
     m_task_list.at(m_running_task_id).SetNextState(EVENT_WAIT);
 }
 
-void TaskManager::Wake(uint32_t const id)
+void TaskManager::TaskWake(uint32_t const id)
 {
     m_task_list.at(id).SetNextState(EVENT_UNBLOCK);
 }
@@ -161,6 +156,39 @@ void TaskManager::Wake(uint32_t const id)
 uint32_t TaskManager::GetPriorityById(uint32_t const id) const
 {
     return m_task_list.at(id).GetPriority();
+}
+
+uint32_t TaskManager::GetBasePriorityById(uint32_t const id) const
+{
+    return m_task_list.at(id).GetBasePriority();
+}
+
+void TaskManager::SetPriorityById(uint32_t const id, uint32_t const priority)
+{
+    Task& task = m_task_list.at(id);
+
+    if (task.GetPriority() != priority)
+    {
+        bool const in_ready_queue = (task.GetState() == TASK_READY);
+
+        // ready queue에 없는 경우, 그냥 priority 값만 바꾸면 됨
+        if (in_ready_queue)
+        {
+            m_ready_queue.Remove(&task); // 변경 전 priority의 버킷에서 제거
+        }
+
+        task.InheritPriority(priority);  // priority 변경
+
+        if (in_ready_queue)
+        {
+            m_ready_queue.PushBack(&task); // 변경된 priority의 버킷에 추가
+        }
+    }
+}
+
+KernelTcb_t* TaskManager::GetRunningTcb(void)
+{
+    return m_task_list.at(m_running_task_id).GetTcb();
 }
 
 void TaskManager::PushToReadyById(uint32_t id)
@@ -181,7 +209,7 @@ void TaskManager::sTaskWrapper(void (*task_func)(void*), void* arg)
 KernelTcb_t* TaskManager_Get_Current_Task(void)
 {
     TaskManager& task_manager = TaskManager::sGetInstance();
-    return task_manager.GetRunningTask()->GetTcb();
+    return task_manager.GetRunningTcb();
 }
 
 int32_t TaskManager_Get_Current_Task_Id()
