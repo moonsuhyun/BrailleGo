@@ -161,11 +161,6 @@ void Task::InheritPriority(uint32_t to)
     m_priority = to;
 }
 
-void Task::RestorePriority(void)
-{
-    m_priority = m_base_priority;
-}
-
 KernelTaskState_t Task::GetState() const
 {
     return m_tcb.state;

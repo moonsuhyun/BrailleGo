@@ -15,17 +15,12 @@
 #include "BspSysTick.h"
 #include "Types.h"
 
-Task* TaskManager::GetRunningTask(void)
-{
-    return &m_task_list[m_running_task_id];
-}
-
 uint32_t TaskManager::GetRunningTaskId(void) const
 {
     return m_running_task_id;
 }
 
-uint32_t TaskManager::GetWakeTimeById(uint32_t id)
+uint32_t TaskManager::GetWakeTimeById(uint32_t const id) const
 {
     return m_task_list[id].GetWakeTime();
 }
@@ -43,12 +38,12 @@ void TaskManager::SysTickCallback(void)
     m_task_list[m_running_task_id].DecreaseTimeSlice();
 }
 
-void TaskManager::SetRunningTaskID(uint32_t id)
+void TaskManager::SetRunningTaskID(uint32_t const id)
 {
     m_running_task_id = id;
 }
 
-void TaskManager::Init(KernelTaskFunc_t init_task)
+void TaskManager::Init(KernelTaskFunc_t const init_task)
 {
     Kernel_TaskQ_Init();
 
@@ -70,24 +65,24 @@ TaskManager& TaskManager::sGetInstance()
 
 uint32_t TaskManager::initTaskCreate(KernelTaskFunc_t start_func, void* arg)
 {
-    uint32_t task_id = m_allocated_task_count++;
+    uint32_t const task_id = m_allocated_task_count++;
     Task& new_task = m_task_list[task_id];
     new_task.SetPriority(0);
-    new_task.SetProgramCounter((uint32_t)&TaskManager::sTaskWrapper, (uint32_t)start_func, arg);
+    new_task.SetProgramCounter(reinterpret_cast<uint32_t>(&TaskManager::sTaskWrapper), reinterpret_cast<uint32_t>(start_func), arg);
     new_task.SetNextState(EVENT_INIT);
 
     return task_id;
 }
 
-int32_t TaskManager::TaskCreate(KernelTaskFunc_t start_func, void* arg, uint32_t priority)
+int32_t TaskManager::TaskCreate(KernelTaskFunc_t start_func, void* arg, uint32_t const priority)
 {
-    uint32_t task_id = m_allocated_task_count++;
+    uint32_t const task_id = m_allocated_task_count++;
 
     if (m_allocated_task_count > MAX_TASK_NUM) return NOT_ENOUGH_TASK_NUM;
 
     Task& new_task = m_task_list[task_id];
     new_task.SetPriority(priority);
-    new_task.SetProgramCounter((uint32_t)&TaskManager::sTaskWrapper, (uint32_t)start_func, arg);
+    new_task.SetProgramCounter(reinterpret_cast<uint32_t>(&TaskManager::sTaskWrapper), reinterpret_cast<uint32_t>(start_func), arg);
     new_task.SetNextState(EVENT_CREATE);
 
     return static_cast<int32_t>(task_id);
@@ -98,7 +93,7 @@ void TaskManager::TaskYield(void)
     m_task_list[m_running_task_id].SetNextState(EVENT_YIELD);
 }
 
-void TaskManager::TaskDelay(uint32_t ms)
+void TaskManager::TaskDelay(uint32_t const ms)
 {
     m_task_list[m_running_task_id].SetDelayTime(ms);
     m_task_list[m_running_task_id].SetNextState(EVENT_DELAY);
@@ -124,23 +119,6 @@ void TaskManager::Scheduler(void)
     }
 
     next_task->SetNextState(EVENT_SCHEDULE);
-}
-
-void TaskManager::MutexWait(uint32_t const owner_id)
-{
-    // Priority Inheritance
-    uint32_t const current_priority = GetPriorityById(m_running_task_id);
-    if (current_priority < GetPriorityById(owner_id))
-    {
-        SetPriorityById(owner_id, current_priority);
-    }
-    m_task_list.at(m_running_task_id).SetNextState(EVENT_WAIT);
-}
-
-void TaskManager::MutexWake(Task* next)
-{
-    m_task_list.at(m_running_task_id).RestorePriority();
-    next->SetNextState(EVENT_UNBLOCK);
 }
 
 void TaskManager::TaskWait(void)
@@ -191,7 +169,7 @@ KernelTcb_t* TaskManager::GetRunningTcb(void)
     return m_task_list.at(m_running_task_id).GetTcb();
 }
 
-void TaskManager::PushToReadyById(uint32_t id)
+void TaskManager::PushToReadyById(uint32_t const id)
 {
     m_ready_queue.PushBack(&m_task_list.at(id));
 }
@@ -231,7 +209,7 @@ void TaskManager_Scheduler(void)
     task_manager.Scheduler();
 }
 
-uint32_t Kernel_Task_Get_Wake_Time_By_Id(uint32_t id)
+uint32_t Kernel_Task_Get_Wake_Time_By_Id(uint32_t const id)
 {
     return TaskManager::sGetInstance().GetWakeTimeById(id);
 }
@@ -239,13 +217,13 @@ uint32_t Kernel_Task_Get_Wake_Time_By_Id(uint32_t id)
 
 // System Call Functions
 // SVC 핸들러에서 호출하는 함수
-void TaskManager_Init(KernelTaskFunc_t init_task)
+void TaskManager_Init(KernelTaskFunc_t const init_task)
 {
     TaskManager& task_manager = TaskManager::sGetInstance();
     task_manager.Init(init_task);
 }
 
-int32_t TaskManager_Create(KernelTaskFunc_t start_func, void* arg, uint32_t priority)
+int32_t TaskManager_Create(KernelTaskFunc_t const start_func, void* arg, uint32_t const priority)
 {
     TaskManager& task_manager = TaskManager::sGetInstance();
     return task_manager.TaskCreate(start_func, arg, priority);
@@ -258,7 +236,7 @@ int32_t TaskManager_Yield()
     return 0;
 }
 
-int32_t TaskManager_Delay(uint32_t ms)
+int32_t TaskManager_Delay(uint32_t const ms)
 {
     TaskManager& task_manager = TaskManager::sGetInstance();
     task_manager.TaskDelay(ms);

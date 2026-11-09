@@ -50,7 +50,6 @@ private:
     // 우선순위
     void SetPriority(uint32_t priority); // base와 현재를 함께 설정
     void InheritPriority(uint32_t to); // 현재만 변경
-    void RestorePriority(void); // 현재 = base
     // TCB 접근(Port 계층 전달)
     KernelTcb_t* GetTcb(void) { return &m_tcb; }
 

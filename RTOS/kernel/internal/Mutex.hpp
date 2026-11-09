@@ -8,21 +8,27 @@
 #include <array>
 
 #include "Kernel.h"
-#include "PriorityQueue.hpp"
+#include "WaitList.hpp"
 
 class Mutex
 {
 private:
-        bool m_locked{false};
-        uint32_t m_owner{0};
-        uint32_t m_waiting_count{0};
-        PriorityQueue m_waiting_list{};
-        static std::array<Mutex, MUTEX_TYPE_NUM> m_mutexes;
+    bool     m_locked{false};
+    uint32_t m_owner{0};
+    WaitList m_waiters{};
+
+    static std::array<Mutex, MUTEX_TYPE_NUM> s_mutexes;
+
+    static Mutex&  Get(MutexType_t type);
+    static void    UpdatePriority(uint32_t task_id); // task_id의 유효 우선순위 재계산
+    static int32_t FindBlockedOn(uint32_t task_id); // task_id가 대기 중인 뮤텍스, 없으면 -1
+    static int32_t Propagate(MutexType_t type, uint32_t waiter_id); // 연쇄 상속
+
 public:
-        int32_t Lock();
-        int32_t Unlock();
-        static int32_t MutexLock(MutexType_t mutex_type);
-        static int32_t MutexUnlock(MutexType_t mutex_type);
+    // Lock:   1 = 즉시 획득, 0 = 대기 후 획득, -EDEADLK = Deadlock 감지
+    // Unlock: 1 = 해제됨, 0 = 소유자가 아님
+    static int32_t Lock(MutexType_t type);
+    static int32_t Unlock(MutexType_t type);
 };
 
 #endif // KERNEL_INTERNAL_MUTEX_HPP_

@@ -63,8 +63,8 @@ void Task_Yield(void);
 void Task_Delay(uint32_t ms);
 void Task_Terminate();
 
-void Mutex_Lock(MutexType_t mutex_type);
-void Mutex_Unlock(MutexType_t mutex_type);
+int32_t Mutex_Lock(MutexType_t mutex_type);   // 1: 즉시 획득, 0: 대기 후 획득, -EDEADLK: Deadlock 감지
+int32_t Mutex_Unlock(MutexType_t mutex_type); // 1: 해제, 0: 소유자 아님
 
 SemHandle_t Semaphore_Create(int32_t initial_count); // 핸들, 실패 시 음수
 int32_t Semaphore_Wait(SemHandle_t h);               // 처리 후 카운트, 실패 시 음수

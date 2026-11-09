@@ -16,7 +16,7 @@ public:
     bool     IsEmpty(void) const;
     void     PushBack(uint32_t id);
     int32_t  PopHighest(void); // 가장 높은 우선순위 태스크 제거 후 ID 반환
-    uint32_t TopPriority(void) const; // 가장 높은 우선순위 값
+    uint32_t TopPriority(void) const; // 가장 높은 우선순위 값; 비어 있을땐 UINT32_MAX 반환
     bool     Contains(uint32_t id) const;
     bool     Remove(uint32_t id);
 };

@@ -4,6 +4,7 @@
 
 #include <stdint.h>
 
+// 상속으로 인해 task의 우선순위가 리스트 외부에서 바뀌므로 매번 재 탐색 필요함
 uint32_t WaitList::highestIndex(void) const
 {
     TaskManager const& task_manager = TaskManager::sGetInstance();

@@ -72,14 +72,14 @@ void Task_Terminate()
     Port_Core_SVC_Call(SC_TERMINATE, NULL, NULL, NULL);
 }
 
-void Mutex_Lock(MutexType_t mutex_type)
+int32_t Mutex_Lock(MutexType_t mutex_type)
 {
-    Port_Core_SVC_Call(SC_MUTLOCK, (void*)mutex_type, NULL, NULL);
+    return Port_Core_SVC_Call(SC_MUTLOCK, (void*)mutex_type, NULL, NULL);
 }
 
-void Mutex_Unlock(MutexType_t mutex_type)
+int32_t Mutex_Unlock(MutexType_t mutex_type)
 {
-    Port_Core_SVC_Call(SC_MUTUNLOCK, (void*)mutex_type, NULL, NULL);
+    return Port_Core_SVC_Call(SC_MUTUNLOCK, (void*)mutex_type, NULL, NULL);
 }
 
 SemHandle_t Semaphore_Create(int32_t initial_count)
